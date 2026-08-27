@@ -1,5 +1,4 @@
 import { readJsonStorage, writeJsonStorage } from "./storage-utils.js";
-import { getTicketById, getTicketList } from "../data/ticket-list.js";
 
 export const SCHOOL_HOME_RESERVATIONS_STORAGE_KEY = "schoolHomeReservations";
 
@@ -70,9 +69,11 @@ export function getSchoolHomeReservationMembers() {
     pets: member.pets.map((pet) => ({
       ...pet,
       remainingCountByType: { ...pet.remainingCountByType },
-      totalReservableCountByType: { ...pet.totalReservableCountByType },
       totalReservedCountByType: { ...pet.totalReservedCountByType },
       ticketHistories: pet.ticketHistories.map((ticket) => ({ ...ticket })),
+      ...(pet.totalReservableCountByType
+        ? { totalReservableCountByType: { ...pet.totalReservableCountByType } }
+        : {}),
     })),
   }));
 }
@@ -101,7 +102,6 @@ const SCHOOL_HOME_MEMBER_FIXTURES = [
     weight: "6.2",
     gender: "여아",
     neuteredStatus: "완료",
-    totalCount: 12,
   }),
   createSchoolMemberFixture({
     memberId: "member-lee-seojun",
@@ -118,7 +118,6 @@ const SCHOOL_HOME_MEMBER_FIXTURES = [
     weight: "4.1",
     gender: "남아",
     neuteredStatus: "완료",
-    totalCount: 8,
   }),
   createSchoolMemberFixture({
     memberId: "member-park-hana",
@@ -135,7 +134,6 @@ const SCHOOL_HOME_MEMBER_FIXTURES = [
     weight: "3.8",
     gender: "여아",
     neuteredStatus: "미완료",
-    totalCount: 6,
   }),
   createSchoolMemberFixture({
     memberId: "member-choi-yuna",
@@ -152,7 +150,6 @@ const SCHOOL_HOME_MEMBER_FIXTURES = [
     weight: "5.0",
     gender: "남아",
     neuteredStatus: "완료",
-    totalCount: 12,
   }),
   createSchoolMemberFixture({
     memberId: "member-jung-doyoon",
@@ -169,7 +166,6 @@ const SCHOOL_HOME_MEMBER_FIXTURES = [
     weight: "3.2",
     gender: "남아",
     neuteredStatus: "완료",
-    totalCount: 8,
   }),
   createSchoolMemberFixture({
     memberId: "member-han-jisoo",
@@ -186,7 +182,6 @@ const SCHOOL_HOME_MEMBER_FIXTURES = [
     weight: "4.6",
     gender: "남아",
     neuteredStatus: "완료",
-    totalCount: 10,
   }),
   createSchoolMemberFixture({
     memberId: "member-oh-seoyeon",
@@ -203,7 +198,6 @@ const SCHOOL_HOME_MEMBER_FIXTURES = [
     weight: "2.9",
     gender: "여아",
     neuteredStatus: "미완료",
-    totalCount: 6,
   }),
   createSchoolMemberFixture({
     memberId: "member-seo-minho",
@@ -220,7 +214,6 @@ const SCHOOL_HOME_MEMBER_FIXTURES = [
     weight: "9.4",
     gender: "남아",
     neuteredStatus: "완료",
-    totalCount: 12,
   }),
   createSchoolMemberFixture({
     memberId: "member-nam-sora",
@@ -237,22 +230,19 @@ const SCHOOL_HOME_MEMBER_FIXTURES = [
     weight: "5.8",
     gender: "여아",
     neuteredStatus: "완료",
-    totalCount: 10,
   }),
 ];
 
-function createSchoolMemberFixture({ memberId, guardianName, phoneNumber, address, addressDetail, petId, petName, totalCount, ...petDetails }) {
-  const ticket = getTicketById("1771987105132") || getTicketList("school")[0];
+function createSchoolMemberFixture({ memberId, guardianName, phoneNumber, address, addressDetail, petId, petName, ...petDetails }) {
   const pet = {
     id: petId,
     petName,
     dogName: petName,
     ...petDetails,
     memo: "",
-    remainingCountByType: { school: totalCount, daycare: 0, oneway: 0, roundtrip: 0 },
-    totalReservableCountByType: { school: totalCount, daycare: 0, oneway: 0, roundtrip: 0 },
+    remainingCountByType: { school: 0, daycare: 0, oneway: 0, roundtrip: 0 },
     totalReservedCountByType: { school: 0, daycare: 0, oneway: 0, roundtrip: 0 },
-    ticketHistories: [createSchoolTicketHistoryFixture(ticket, totalCount)],
+    ticketHistories: [],
     petTags: [],
   };
 
@@ -266,44 +256,4 @@ function createSchoolMemberFixture({ memberId, guardianName, phoneNumber, addres
     ownerTags: [],
     pets: [pet],
   };
-}
-
-function createSchoolTicketHistoryFixture(ticket, totalCount) {
-  return {
-    id: `ticket-fixture-${ticket?.id || "school"}-${totalCount}`,
-    ticketId: ticket?.id || "",
-    type: ticket?.type || "school",
-    pickdropType: ticket?.pickdropType ?? null,
-    status: "사용 전",
-    ticketName: ticket?.name || "유치원 이용권",
-    remainingCount: totalCount,
-    reservableCount: totalCount,
-    reservedCount: 0,
-    totalCount,
-    quantity: ticket?.quantity || totalCount,
-    validity: ticket?.validity || 0,
-    unit: ticket?.unit || "",
-    validDays: ticket?.unlimitedValidity ? 0 : getTicketValidDays(ticket),
-    expiresAt: "",
-    amount: ticket?.price || 0,
-    price: ticket?.price || 0,
-    startDatePolicy: ticket?.startDatePolicy || "",
-    reservationDateRule: ticket?.reservationDateRule || "",
-    unlimitedValidity: Boolean(ticket?.unlimitedValidity),
-    weekdays: ticket?.weekdays ?? null,
-    classIds: ticket?.classIds ?? null,
-    deductedCount: 0,
-    depletedAt: "",
-    startedAt: "",
-    issuedAt: "",
-    usageHistory: [],
-  };
-}
-
-function getTicketValidDays(ticket) {
-  const validity = Math.max(Number(ticket?.validity) || 0, 0);
-  const unit = String(ticket?.unit || "").trim();
-  if (unit === "주") return validity * 7;
-  if (unit === "개월" || unit === "달") return validity * 30;
-  return validity;
 }

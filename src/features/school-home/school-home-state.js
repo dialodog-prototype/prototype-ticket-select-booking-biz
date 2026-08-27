@@ -19,6 +19,7 @@ export function createSchoolHomeState() {
     selectedReservationIds: [],
     hideCancelledReservations: true,
     toastMessage,
+    toastQueue: [],
     searchTerm: "",
     selectedReservationMember: null,
     isReservationSearchMenuOpen: false,

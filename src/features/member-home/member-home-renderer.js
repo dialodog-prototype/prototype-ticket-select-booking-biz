@@ -367,9 +367,13 @@ function createTicketIssueModal(memberHomeState) {
         deductedCount: rowDeduction,
       });
       nextMembers = result.members;
-      if (result.issuedTicket && rowDeduction > 0) {
-        overbookedReservations.slice(reservationOffset, reservationOffset + rowDeduction).forEach((reservation) => {
-          updateSchoolHomeReservationTicketHistory(reservation.id, result.issuedTicket);
+      if (result.issuedTickets?.length && rowDeduction > 0) {
+        const issuedTicketQueue = result.issuedTickets.flatMap((issuedTicket) => (
+          Array.from({ length: issuedTicket.deductedCount || 0 }, () => issuedTicket)
+        ));
+        overbookedReservations.slice(reservationOffset, reservationOffset + rowDeduction).forEach((reservation, index) => {
+          const issuedTicket = issuedTicketQueue[index];
+          if (issuedTicket) updateSchoolHomeReservationTicketHistory(reservation.id, issuedTicket);
         });
       }
       reservationOffset += rowDeduction;

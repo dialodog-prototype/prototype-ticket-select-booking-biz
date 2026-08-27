@@ -11,6 +11,7 @@ registrationState.reservationRegisterDraft = {
   query: "",
   currentMonth: getTodayDateKey().slice(0, 7),
   selectedDates: [],
+  ticketInitialCounts: {},
   allowOverLimit: false,
 };
 

@@ -355,42 +355,48 @@ export function issueTicketToMemberPet({ memberId, petId, ticket, quantity = 1, 
   const currentMembers = getStoredMembers();
   const issueQuantity = Math.max(Math.floor(Number(quantity) || 0), 1);
   const ticketQuantity = Math.max(Math.floor(Number(ticket?.quantity) || 0), 0);
-  const totalCount = ticketQuantity * issueQuantity;
-  const deduction = Math.min(Math.max(Math.floor(Number(deductedCount) || 0), 0), totalCount);
+  const totalIssuedCount = ticketQuantity * issueQuantity;
+  const deduction = Math.min(Math.max(Math.floor(Number(deductedCount) || 0), 0), totalIssuedCount);
 
-  if (!memberId || !petId || !ticket?.id || totalCount <= 0) {
-    return { members: currentMembers, issuedTicket: null };
+  if (!memberId || !petId || !ticket?.id || totalIssuedCount <= 0) {
+    return { members: currentMembers, issuedTicket: null, issuedTickets: [] };
   }
 
   const issuedAt = new Date().toISOString();
-  const issuedTicket = {
-    id: `ticket-history-${ticket.id}-${Date.now()}`,
-    ticketId: ticket.id,
-    type: ticket.type || "school",
-    pickdropType: ticket.pickdropType ?? null,
-    status: deduction > 0 ? "이용 중" : "사용 전",
-    ticketName: ticket.name || "이용권",
-    remainingCount: totalCount - deduction,
-    reservableCount: totalCount - deduction,
-    reservedCount: 0,
-    totalCount,
-    quantity: ticketQuantity,
-    validity: Number(ticket.validity) || 0,
-    unit: ticket.unit || "",
-    validDays: ticket.unlimitedValidity ? 0 : getTicketValidDays(ticket),
-    expiresAt: "",
-    amount: (Number(ticket.price) || 0) * issueQuantity,
-    price: Number(ticket.price) || 0,
-    startDatePolicy: ticket.startDatePolicy || "",
-    reservationDateRule: ticket.reservationDateRule || "",
-    unlimitedValidity: Boolean(ticket.unlimitedValidity),
-    weekdays: ticket.weekdays ?? null,
-    classIds: ticket.classIds ?? null,
-    deductedCount: deduction,
-    depletedAt: deduction >= totalCount ? issuedAt : "",
-    startedAt: "",
-    issuedAt,
-  };
+  const ticketHistoryPrefix = `ticket-history-${ticket.id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  let remainingDeduction = deduction;
+  const issuedTickets = Array.from({ length: issueQuantity }, (_, index) => {
+    const ticketDeduction = Math.min(remainingDeduction, ticketQuantity);
+    remainingDeduction -= ticketDeduction;
+    return {
+      id: `${ticketHistoryPrefix}-${index + 1}`,
+      ticketId: ticket.id,
+      type: ticket.type || "school",
+      pickdropType: ticket.pickdropType ?? null,
+      status: ticketDeduction > 0 ? "이용 중" : "사용 전",
+      ticketName: ticket.name || "이용권",
+      remainingCount: ticketQuantity - ticketDeduction,
+      reservableCount: ticketQuantity - ticketDeduction,
+      reservedCount: 0,
+      totalCount: ticketQuantity,
+      quantity: ticketQuantity,
+      validity: Number(ticket.validity) || 0,
+      unit: ticket.unit || "",
+      validDays: ticket.unlimitedValidity ? 0 : getTicketValidDays(ticket),
+      expiresAt: "",
+      amount: Number(ticket.price) || 0,
+      price: Number(ticket.price) || 0,
+      startDatePolicy: ticket.startDatePolicy || "",
+      reservationDateRule: ticket.reservationDateRule || "",
+      unlimitedValidity: Boolean(ticket.unlimitedValidity),
+      weekdays: ticket.weekdays ?? null,
+      classIds: ticket.classIds ?? null,
+      deductedCount: ticketDeduction,
+      depletedAt: ticketDeduction >= ticketQuantity ? issuedAt : "",
+      startedAt: "",
+      issuedAt,
+    };
+  });
 
   const nextMembers = currentMembers.map((member) => {
     if (member.id !== memberId) {
@@ -406,7 +412,7 @@ export function issueTicketToMemberPet({ memberId, petId, ticket, quantity = 1, 
 
         const totalReservableCountByType = {
           ...(pet.totalReservableCountByType || {}),
-          school: (Number(pet.totalReservableCountByType?.school) || 0) + totalCount,
+          school: (Number(pet.totalReservableCountByType?.school) || 0) + totalIssuedCount,
         };
         const totalReservedCountByType = {
           ...(pet.totalReservedCountByType || {}),
@@ -421,7 +427,7 @@ export function issueTicketToMemberPet({ memberId, petId, ticket, quantity = 1, 
             ...(pet.remainingCountByType || {}),
             school: Math.max(totalReservableCountByType.school - totalReservedCountByType.school, 0),
           },
-          ticketHistories: [...(pet.ticketHistories || []), issuedTicket],
+          ticketHistories: [...(pet.ticketHistories || []), ...issuedTickets],
         };
       }),
     };
@@ -429,7 +435,8 @@ export function issueTicketToMemberPet({ memberId, petId, ticket, quantity = 1, 
 
   return {
     members: saveStoredMembers(nextMembers),
-    issuedTicket,
+    issuedTicket: issuedTickets[0] || null,
+    issuedTickets,
   };
 }
 

@@ -1,6 +1,6 @@
 .toast-popup {
   position: fixed;
-  z-index: 30;
+  z-index: 100;
   left: 50%;
   right: auto;
   bottom: 24px;
@@ -13,7 +13,34 @@
   text-align: center;
 }
 
+.toast-stack {
+  position: fixed;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.toast-stack .toast-popup {
+  position: static;
+  max-width: min(420px, calc(100vw - 32px));
+  transform: none;
+}
+
 @media (max-width: 430px) {
+  .toast-stack {
+    top: 50%;
+    left: 50%;
+    width: calc(100vw - 32px);
+    align-items: center;
+    transform: translate(-50%, -50%);
+  }
+
+  .toast-stack .toast-popup {
+    width: 100%;
+  }
+
   .toast-popup {
     top: 50%;
     bottom: auto;
@@ -23,10 +50,32 @@
 }
 
 @media (min-width: 431px) {
+  .toast-stack {
+    right: 32px;
+    bottom: 32px;
+    align-items: flex-end;
+  }
+
   .toast-popup {
     left: auto;
     right: 32px;
     bottom: 32px;
     transform: none;
   }
+}
+
+.toast-popup--app {
+  top: 50%;
+  right: auto;
+  bottom: auto;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.toast-stack .toast-popup--app {
+  top: auto;
+  right: auto;
+  bottom: auto;
+  left: auto;
+  transform: none;
 }

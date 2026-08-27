@@ -837,10 +837,16 @@ function createTicketIssueBottomSheet(memberDetailState, member) {
       quantity: memberDetailState.ticketIssueQuantity,
       deductedCount,
     });
-    if (result.issuedTicket && deductedCount > 0) {
+    if (result.issuedTickets?.length && deductedCount > 0) {
+      const issuedTicketQueue = result.issuedTickets.flatMap((issuedTicket) => (
+        Array.from({ length: issuedTicket.deductedCount || 0 }, () => issuedTicket)
+      ));
       getAppOverbookedReservations(memberDetailState.reservations, member.id, member.petId)
         .slice(0, deductedCount)
-        .forEach((reservation) => updateSchoolHomeReservationTicketHistory(reservation.id, result.issuedTicket));
+        .forEach((reservation, index) => {
+          const issuedTicket = issuedTicketQueue[index];
+          if (issuedTicket) updateSchoolHomeReservationTicketHistory(reservation.id, issuedTicket);
+        });
     }
     const nextMember = result.members.find((item) => item.id === member.id);
     memberDetailState.members = result.members;

@@ -28,7 +28,7 @@ export function getRegistrationValidation({ member, pet, ticketSelected = true, 
   if (dates.some((date) => (capacityClosedDates || []).includes(date))) return { isValid: false, message: "마감된 날짜는 등록할 수 없습니다." };
 
   const existingDates = new Set((reservations || [])
-    .filter((reservation) => reservation.memberId === member.id && reservation.petId === pet.id)
+    .filter((reservation) => reservation.status !== "취소" && reservation.memberId === member.id && reservation.petId === pet.id)
     .map((reservation) => reservation.date));
   if (dates.some((date) => existingDates.has(date))) return { isValid: false, message: "이미 예약된 날짜가 포함되어 있습니다." };
 
