@@ -107,8 +107,27 @@ function createReservationTicket(reservation, pet) {
     ? "선택 안함"
     : reservation?.ticketName || ticketHistory?.ticketName || "-";
   section.append(createElement("h2", { textContent: "이용권" }));
-  section.append(createElement("div", { className: "school-reservation-detail-ticket", textContent: ticketName }));
+  const ticketUsageRound = getTicketUsageRound(reservation, ticketHistory);
+  const ticket = createElement("div", { className: "school-reservation-detail-ticket" });
+  ticket.append(createElement("div", { className: "school-reservation-detail-ticket-name", textContent: ticketName }));
+  ticket.append(createElement("div", { className: "school-reservation-detail-ticket-round", textContent: ticketUsageRound }));
+  section.append(ticket);
   return section;
+}
+
+function getTicketUsageRound(reservation, ticketHistory) {
+  const totalCount = Math.max(Number(ticketHistory?.totalCount ?? ticketHistory?.quantity) || 0, 0);
+  if (!reservation?.ticketHistoryId || reservation?.isOverbooked || totalCount <= 0) return "-";
+
+  const ticketReservations = getSchoolHomeReservations()
+    .filter((item) => item.ticketHistoryId === reservation.ticketHistoryId && item.status !== "취소")
+    .sort((left, right) => {
+      const dateOrder = String(left.date || "").localeCompare(String(right.date || ""));
+      if (dateOrder) return dateOrder;
+      return String(left.createdAt || left.reservedAt || left.id || "").localeCompare(String(right.createdAt || right.reservedAt || right.id || ""));
+    });
+  const usageRound = ticketReservations.findIndex((item) => item.id === reservation.id) + 1;
+  return usageRound > 0 ? `${usageRound}/${totalCount}회차` : "-";
 }
 
 function formatReservationDate(dateText) {

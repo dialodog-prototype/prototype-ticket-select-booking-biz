@@ -106,6 +106,13 @@
   font-size: 28px;
 }
 
+.school-reservation-detail-ticket-round {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #dedfe1;
+  font-size: 22px;
+}
+
 .school-reservation-detail-pickdrop-section {
   margin-top: 32px;
 }
@@ -238,10 +245,20 @@
 
   .school-reservation-detail-ticket {
     min-height: 56px;
-    display: flex;
-    align-items: center;
     padding: 14px 20px;
     font-size: 16px;
+  }
+
+  .school-reservation-detail-ticket-name {
+    min-height: 28px;
+    display: flex;
+    align-items: center;
+  }
+
+  .school-reservation-detail-ticket-round {
+    margin-top: 12px;
+    padding-top: 12px;
+    font-size: 14px;
   }
 
   .school-reservation-detail-pickdrop-section {
