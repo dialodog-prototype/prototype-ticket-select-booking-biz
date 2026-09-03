@@ -15,7 +15,7 @@ export function createSchoolReservationCancelAlert({ onClose, onConfirm } = {}) 
     className: "school-reservation-cancel-alert",
     area: "schoolReservationCancelAlert",
     modal: "schoolReservationCancelAlert",
-    message: "예약을 삭제하시겠습니까?\n삭제된 예약은 복구할 수 없습니다.",
+    message: "선택한 회원의 예약을 취소하시겠습니까?\n한 번 취소된 예약은 복원할 수 없습니다.",
     actions: [
       { label: "닫기", variant: "secondary", onClick: close },
       { label: "예약 취소", variant: "danger", onClick: confirm },

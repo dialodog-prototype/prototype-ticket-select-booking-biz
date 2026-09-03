@@ -8,7 +8,7 @@ import { formatMemberWeight } from "../../shared/utils/member-date.js";
 import { saveSchoolHomeReservation } from "../../shared/storage/school-home-storage.js";
 import { updateTicketHistoryCounters } from "../../shared/storage/member-storage.js";
 import { cancelSchoolReservation } from "../../shared/services/school-reservation-cancellation-service.js";
-import { getTicketExpiryDate } from "../../shared/services/ticket-status-service.js";
+import { getLatestUsedTicketHistoryId, getTicketExpiryDate } from "../../shared/services/ticket-status-service.js";
 import {
   createSchoolReservation,
   getPetReservableCount,
@@ -38,7 +38,6 @@ const DAYOFF_ICON_PATH = "../assets/iconDayoff.svg";
 const CALENDAR_ICON_PATH = "../assets/iconCalendar.svg";
 const CHECK_ICON_PATH = "../assets/iconCheckCircle.svg";
 const RESERVATION_SUCCESS_TOAST_MESSAGE = "예약이 등록되었습니다.";
-const TICKET_CHANGE_TOAST_MESSAGE = "계속 등록 후 이용권을 변경해 주세요.";
 const TICKET_DEPLETED_TOAST_MESSAGE = "선택한 이용권을 모두 사용했습니다.";
 const HEADER_ICON_ACTIONS = {
   설정: "openSettings",
@@ -548,7 +547,10 @@ function isPastDateKey(dateKey) {
 }
 
 function getSchoolReservationPanelSummary(schoolHomeState, platform) {
-  const summary = getSelectedDateSummary(schoolHomeState);
+  const isMonthlyMemberSearch = platform === "web" && Boolean(schoolHomeState.selectedReservationMember?.memberId);
+  const summary = isMonthlyMemberSearch
+    ? getMonthlyMemberReservationSummary(schoolHomeState)
+    : getSelectedDateSummary(schoolHomeState);
   const reservations = summary.reservations.filter((reservation) => {
     if (reservation.status !== "취소") return true;
     return platform === "web" && !schoolHomeState.hideCancelledReservations;
@@ -557,6 +559,23 @@ function getSchoolReservationPanelSummary(schoolHomeState, platform) {
   return {
     ...summary,
     reservationCount: reservations.length,
+    hasReservations: reservations.length > 0,
+    reservations,
+    isMonthlyMemberSearch,
+  };
+}
+
+function getMonthlyMemberReservationSummary(schoolHomeState) {
+  const memberId = schoolHomeState.selectedReservationMember.memberId;
+  const reservations = (schoolHomeState.reservations || [])
+    .filter((reservation) => reservation.memberId === memberId && String(reservation.date || "").slice(0, 7) === schoolHomeState.currentMonth)
+    .sort((left, right) => String(left.date || "").localeCompare(String(right.date || "")));
+
+  return {
+    dateText: `${getMonthLabel(schoolHomeState.currentMonth)} 예약`,
+    reservationCount: reservations.length,
+    isHoliday: false,
+    isCapacityClosed: false,
     hasReservations: reservations.length > 0,
     reservations,
   };
@@ -577,7 +596,10 @@ function createWebReservationBody(schoolHomeState, summary) {
   }
 
   const wrapper = createElement("div", { className: "school-reservation-table-wrapper" });
-  const table = createElement("div", { className: "school-reservation-table" });
+  const table = createElement("div", {
+    className: "school-reservation-table",
+    dataset: { state: summary.isMonthlyMemberSearch ? "monthlyMemberSearch" : "daily" },
+  });
   const header = createElement("div", { className: "school-reservation-table-row is-header" });
   const allCheckbox = createElement("input", { type: "checkbox" });
   const activeReservations = summary.reservations.filter((reservation) => reservation.status !== "취소");
@@ -592,7 +614,7 @@ function createWebReservationBody(schoolHomeState, summary) {
   const checkboxCell = createElement("label", { className: "school-reservation-checkbox-cell" });
   checkboxCell.append(allCheckbox);
   header.append(checkboxCell);
-  ["상태", "반려견", "견종"].forEach((labelText) => {
+  ["상태", ...(summary.isMonthlyMemberSearch ? ["예약일"] : []), "반려견", "품종", "예약자"].forEach((labelText) => {
     header.append(createElement("strong", { textContent: labelText }));
   });
   table.append(header);
@@ -601,7 +623,7 @@ function createWebReservationBody(schoolHomeState, summary) {
     table.append(createWebReservationPlaceholderRow(hasActiveReservationFilters(schoolHomeState)));
   } else {
     summary.reservations.forEach((reservation) => {
-      table.append(createWebReservationRow(schoolHomeState, reservation));
+      table.append(createWebReservationRow(schoolHomeState, reservation, summary.isMonthlyMemberSearch));
     });
   }
 
@@ -621,7 +643,7 @@ function createWebReservationPlaceholderRow(isFilteredEmpty = false) {
   return row;
 }
 
-function createWebReservationRow(schoolHomeState, reservation) {
+function createWebReservationRow(schoolHomeState, reservation, showReservationDate = false) {
   const row = createElement("div", {
     className: "school-reservation-table-row",
     dataset: { entityId: reservation.id, state: schoolHomeState.selectedReservationIds.includes(reservation.id) ? "selected" : "idle" },
@@ -642,12 +664,10 @@ function createWebReservationRow(schoolHomeState, reservation) {
     className: `school-reservation-status${reservation.status === "취소" ? " is-cancelled" : ""}`,
     textContent: reservation.status,
   }));
+  if (showReservationDate) row.append(createElement("span", { textContent: reservation.date || "-" }));
   row.append(createElement("span", { textContent: reservation.petName }));
   row.append(createElement("span", { textContent: reservation.breed }));
-  row.addEventListener("click", (event) => {
-    if (event.target.closest("input, button")) return;
-    window.location.href = `./school-reservation-detail.html?reservationId=${encodeURIComponent(reservation.id)}`;
-  });
+  row.append(createElement("span", { textContent: reservation.guardianName || "-" }));
   return row;
 }
 
@@ -1123,7 +1143,7 @@ function createAppReservationMemberSearchScreen(schoolHomeState) {
     button.addEventListener("click", () => {
       draft.memberId = member.id;
       draft.petId = pet.id;
-      draft.ticketId = getDefaultReservationTicket(pet)?.id || "";
+      draft.ticketId = getDefaultReservationTicket(pet, schoolHomeState.reservations, member.id, pet.id)?.id || "";
       draft.query = "";
       draft.selectedDates = [];
       draft.allowOverLimit = false;
@@ -1239,7 +1259,7 @@ function createReservationMemberField(schoolHomeState, draft) {
       draft.petId = pet.id;
       draft.query = "";
       draft.selectedDates = [];
-      draft.ticketId = getDefaultReservationTicket(pet)?.id || "";
+      draft.ticketId = getDefaultReservationTicket(pet, schoolHomeState.reservations, member.id, pet.id)?.id || "";
       draft.allowOverLimit = false;
       draft.ticketInitialCounts = getReservationTicketInitialCounts(pet);
       rerender(schoolHomeState);
@@ -1278,8 +1298,13 @@ function getTicketReservableCount(ticket) {
   return Number(ticket?.reservableCount ?? ticket?.remainingCount) || 0;
 }
 
-function getDefaultReservationTicket(pet) {
-  return [...getAvailableReservationTickets(pet)].sort((a, b) => {
+function getDefaultReservationTicket(pet, reservations = [], memberId = "", petId = "") {
+  const tickets = getAvailableReservationTickets(pet);
+  const latestTicketHistoryId = getLatestUsedTicketHistoryId(reservations, { memberId, petId });
+  const latestTicket = tickets.find((ticket) => ticket.id === latestTicketHistoryId);
+  if (latestTicket) return latestTicket;
+
+  return [...tickets].sort((a, b) => {
     const aTime = Date.parse(a.expiresAt || "") || Number.MAX_SAFE_INTEGER;
     const bTime = Date.parse(b.expiresAt || "") || Number.MAX_SAFE_INTEGER;
     return aTime - bTime;
@@ -1350,7 +1375,8 @@ function createReservationTicketField(schoolHomeState, draft, { isAppRegistratio
     dataset: { state: member && pet ? (tickets.length ? "available" : "empty") : "memberRequired" },
   });
   field.append(createElement("h3", { textContent: "이용권" }));
-  const selected = tickets.find((ticket) => ticket.id === draft.ticketId) || getDefaultReservationTicket(pet);
+  const selected = tickets.find((ticket) => ticket.id === draft.ticketId)
+    || getDefaultReservationTicket(pet, schoolHomeState.reservations, draft.memberId, draft.petId);
   if (selected && !draft.ticketId) draft.ticketId = selected.id;
 
   if (isAppRegistration) {
@@ -1440,7 +1466,6 @@ function createReservationDateField(schoolHomeState, draft, { isAppRegistration 
   const selectedTicket = getAvailableReservationTickets(selectedPet).find((ticket) => ticket.id === draft.ticketId)
     || getTicketHistoryById(selectedPet, draft.ticketId);
   const hasSelectedMemberPet = Boolean(selectedMember && selectedPet);
-  const reservationLimit = getPetReservableCount(selectedPet);
   const isMemberSelected = hasSelectedMemberPet;
   const controls = createElement("div", { className: "school-registration-month-controls" });
   ["prev", "next"].forEach((direction) => {
@@ -1492,32 +1517,14 @@ function createReservationDateField(schoolHomeState, draft, { isAppRegistration 
       const unavailable = !cell.isCurrentMonth || isSchoolCapacityClosed(schoolHomeState, cell.dateKey);
       const isSelected = draft.selectedDates.includes(cell.dateKey);
       const activeTicket = getTicketHistoryById(selectedPet, draft.ticketId) || selectedTicket;
-      const canRegisterWithoutTicket = !activeTicket;
       const ticketCapacity = getTicketReservableCount(activeTicket);
       const selectedDateIndex = draft.selectedDates.indexOf(cell.dateKey);
       const usesSelectedTicket = isSelected && Boolean(draft.ticketId) && selectedDateIndex < ticketCapacity;
       const isOverbookedSelection = isSelected && !usesSelectedTicket;
-      const hasTicketCapacity = draft.selectedDates.length < ticketCapacity;
-      const canSelectOverbookedDate = isAppRegistration
-        ? draft.selectedDates.length >= reservationLimit
-        : Boolean(draft.allowOverLimit && draft.selectedDates.length >= reservationLimit);
       const isChecked = isSelected || (!isAppRegistration && isAlreadyReserved);
-      const isTicketCapacityReached = !isSelected
-        && Boolean(activeTicket)
-        && ticketCapacity > 0
-        && !hasTicketCapacity;
-      const canShowTicketChangeToast = Boolean(
-        activeTicket
-          && ticketCapacity > 0
-          && getAvailableReservationTickets(selectedPet).length > 1
-          && isTicketCapacityReached
-          && !canSelectOverbookedDate
-      );
       const isDateDisabled = !isMemberSelected
-        || (!activeTicket && !canRegisterWithoutTicket)
         || unavailable
-        || isAlreadyReserved
-        || (isAppRegistration && !canRegisterWithoutTicket && isTicketCapacityReached && !canSelectOverbookedDate);
+        || isAlreadyReserved;
       const dateButton = createElement("button", {
         className: ["school-registration-date", !cell.isCurrentMonth ? "is-muted" : "", isPastReservation ? "is-past" : "", unavailable ? "is-unavailable" : "", isDateDisabled ? "is-disabled" : "", isChecked ? "is-checked" : "", isOverbookedSelection || existingReservation?.isOverbooked ? "is-overbooked" : "", isAlreadyReserved ? "is-reserved" : ""].filter(Boolean).join(" "),
         type: "button",
@@ -1543,12 +1550,6 @@ function createReservationDateField(schoolHomeState, draft, { isAppRegistration 
         if (isSelected) {
           draft.selectedDates = draft.selectedDates.filter((date) => date !== cell.dateKey);
         } else {
-          if (isAppRegistration && !canRegisterWithoutTicket && !hasTicketCapacity && !canSelectOverbookedDate) {
-            if (canShowTicketChangeToast) setSchoolHomeToast(schoolHomeState, TICKET_CHANGE_TOAST_MESSAGE);
-            rerender(schoolHomeState);
-            return;
-          }
-          if (canShowTicketChangeToast) setSchoolHomeToast(schoolHomeState, TICKET_CHANGE_TOAST_MESSAGE);
           draft.selectedDates = [...draft.selectedDates, cell.dateKey].sort();
         }
         rerender(schoolHomeState);
@@ -1572,16 +1573,12 @@ function createReservationRegistrationFooter(schoolHomeState, draft, { isAppRegi
   const totalCount = getPetReservableCount(pet);
   const selectedCount = draft.selectedDates.length;
   const isOverLimit = selectedCount > totalCount;
-  const canAllowOverLimit = Boolean(member && pet && isOverLimit);
   const availableTickets = getAvailableReservationTickets(pet);
-  const canShowOverLimitOption = availableTickets.length === 1;
   const selectedTicket = getTicketHistoryById(pet, draft.ticketId);
   const ticketCapacity = getTicketReservableCount(selectedTicket);
   const hasTicketAllocation = Boolean(draft.ticketId) && draft.selectedDates.some((date) => draft.selectedDates.indexOf(date) < ticketCapacity);
   const hasOverbookedSelection = draft.selectedDates.some((date) => draft.selectedDates.indexOf(date) >= ticketCapacity);
-  const isTicketSelected = isAppRegistration && !selectedTicket
-    ? true
-    : hasTicketAllocation || hasOverbookedSelection;
+  const isTicketSelected = !selectedTicket || hasTicketAllocation || hasOverbookedSelection;
   const validation = getRegistrationValidation({
     member,
     pet,
@@ -1589,7 +1586,7 @@ function createReservationRegistrationFooter(schoolHomeState, draft, { isAppRegi
     selectedDates: draft.selectedDates,
     reservations: schoolHomeState.reservations,
     capacityClosedDates: schoolHomeState.capacityClosedDates,
-    allowOverLimit: isAppRegistration ? isOverLimit : draft.allowOverLimit,
+    allowOverLimit: true,
   });
   const canContinueRegistration = validation.isValid && availableTickets.length > 1;
   const footer = createElement("footer", {
@@ -1602,19 +1599,7 @@ function createReservationRegistrationFooter(schoolHomeState, draft, { isAppRegi
     count.append(createElement("em", { textContent: `${selectedCount - totalCount}회 초과` }));
   }
   footer.append(count);
-  if (!isAppRegistration && canShowOverLimitOption) {
-    const overLimitOption = createElement("label", { className: "school-registration-over-limit-option" });
-    const overLimitCheckbox = createElement("input", { type: "checkbox", dataset: { field: "allowOverLimit" } });
-    overLimitCheckbox.checked = Boolean(draft.allowOverLimit && canAllowOverLimit);
-    overLimitCheckbox.disabled = !canAllowOverLimit;
-    overLimitCheckbox.addEventListener("change", () => {
-      draft.allowOverLimit = overLimitCheckbox.checked;
-      rerender(schoolHomeState);
-    });
-    overLimitOption.append(overLimitCheckbox, createElement("span", { textContent: "예약 가능 횟수 초과해서 등록하기" }));
-    footer.append(overLimitOption);
-  }
-  const actions = createElement("div", { className: "school-registration-actions" });
+  const actions = createElement("div", { className: "school-registration-actions modal-footer-actions" });
   const continueButton = createElement("button", {
     className: "button button--secondary school-registration-continue-button",
     type: "button",
@@ -1631,11 +1616,10 @@ function createReservationRegistrationFooter(schoolHomeState, draft, { isAppRegi
       "button",
       "button--primary",
       "school-registration-submit-button",
-      isAppRegistration && isOverLimit ? "school-app-registration-over-limit-submit-button" : "",
-      !isAppRegistration && draft.allowOverLimit && isOverLimit ? "school-registration-over-limit-submit-button" : "",
+      isOverLimit ? "button--danger" : "",
     ].filter(Boolean).join(" "),
     type: "button",
-    textContent: (isAppRegistration || draft.allowOverLimit) && isOverLimit ? "초과 등록" : "등록",
+    textContent: isOverLimit ? "초과 등록" : "등록",
     dataset: { action: "submitSchoolReservation", state: validation.isValid ? "enabled" : "disabled" },
   });
   submitButton.disabled = !validation.isValid;
@@ -1705,7 +1689,7 @@ function createPickdropReservationModal(schoolHomeState) {
   body.append(list);
   modal.append(body);
 
-  const footer = createElement("footer", { className: "pickdrop-registration-modal-footer" });
+  const footer = createElement("footer", { className: "pickdrop-registration-modal-footer modal-footer-actions" });
   const previousButton = createElement("button", {
     className: "button button--secondary pickdrop-registration-previous-button",
     type: "button",

@@ -277,16 +277,79 @@ export function updateTicketHistoryCounters({ memberId, petId, ticketHistoryId, 
           ticketHistories: (pet.ticketHistories || []).map((ticket) => {
             if (ticket.id !== ticketHistoryId) return ticket;
             didUpdate = true;
+            const nextReservableCount = Math.max((Number(ticket.reservableCount) || 0) + Number(reservableDelta || 0), 0);
             const nextRemainingCount = Math.max((Number(ticket.remainingCount) || 0) + Number(remainingDelta || 0), 0);
             return {
               ...ticket,
-              reservableCount: Math.max((Number(ticket.reservableCount) || 0) + Number(reservableDelta || 0), 0),
+              reservableCount: nextReservableCount,
               reservedCount: Math.max((Number(ticket.reservedCount) || 0) + Number(reservedDelta || 0), 0),
               remainingCount: nextRemainingCount,
-              depletedAt: nextRemainingCount > 0 ? "" : ticket.depletedAt || "",
+              depletedAt: nextReservableCount > 0 ? "" : ticket.depletedAt || new Date().toISOString(),
             };
           }),
         };
+      }),
+    };
+  });
+
+  return {
+    didUpdate,
+    members: didUpdate ? saveStoredMembers(nextMembers) : currentMembers,
+  };
+}
+
+export function updateTicketHistory({ memberId, petId, ticketHistoryId, reservableCount, expiresAt } = {}) {
+  if (!memberId || !petId || !ticketHistoryId) return { members: getStoredMembers(), didUpdate: false };
+
+  const currentMembers = getStoredMembers();
+  let didUpdate = false;
+  const nextMembers = currentMembers.map((member) => {
+    if (member.id !== memberId) return member;
+    return {
+      ...member,
+      pets: (member.pets || []).map((pet) => {
+        if (pet.id !== petId) return pet;
+        return {
+          ...pet,
+          ticketHistories: (pet.ticketHistories || []).map((ticket) => {
+            if (ticket.id !== ticketHistoryId) return ticket;
+            didUpdate = true;
+            const nextReservableCount = Math.max(Number(reservableCount) || 0, 0);
+            return {
+              ...ticket,
+              reservableCount: nextReservableCount,
+              expiresAt: expiresAt || "",
+              depletedAt: nextReservableCount > 0 ? "" : ticket.depletedAt || new Date().toISOString(),
+            };
+          }),
+        };
+      }),
+    };
+  });
+
+  return {
+    didUpdate,
+    members: didUpdate ? saveStoredMembers(nextMembers) : currentMembers,
+  };
+}
+
+export function removeTicketHistory({ memberId, petId, ticketHistoryId } = {}) {
+  if (!memberId || !petId || !ticketHistoryId) return { members: getStoredMembers(), didUpdate: false };
+
+  const currentMembers = getStoredMembers();
+  let didUpdate = false;
+  const nextMembers = currentMembers.map((member) => {
+    if (member.id !== memberId) return member;
+    return {
+      ...member,
+      pets: (member.pets || []).map((pet) => {
+        if (pet.id !== petId) return pet;
+        const ticketHistories = (pet.ticketHistories || []).filter((ticket) => {
+          const shouldRemove = ticket.id === ticketHistoryId;
+          if (shouldRemove) didUpdate = true;
+          return !shouldRemove;
+        });
+        return { ...pet, ticketHistories };
       }),
     };
   });

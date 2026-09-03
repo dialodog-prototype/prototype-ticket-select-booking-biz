@@ -63,6 +63,19 @@ export function updateSchoolHomeReservationTicketHistory(reservationId, ticketHi
   });
 }
 
+export function clearSchoolHomeReservationTicketHistory(reservationId) {
+  const reservation = getSchoolHomeReservations().find((item) => item.id === reservationId);
+  if (!reservation) return null;
+
+  return saveSchoolHomeReservation({
+    ...reservation,
+    isOverbooked: true,
+    ticketHistoryId: "",
+    ticketId: "",
+    ticketName: "",
+  });
+}
+
 export function getSchoolHomeReservationMembers() {
   return SCHOOL_HOME_MEMBER_FIXTURES.map((member) => ({
     ...member,

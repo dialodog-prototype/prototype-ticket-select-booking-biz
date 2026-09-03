@@ -794,7 +794,7 @@ function createRegistrationAlert(memberRegistrationState) {
     content.append(option);
   }
 
-  const actions = createElement("div", { className: "registration-alert-actions" });
+  const actions = createElement("div", { className: "registration-alert-actions modal-footer-actions" });
   const closeButton = createElement("button", { className: "button button--alert-secondary alert-dialog__button", type: "button", textContent: "닫기", dataset: { action: "closeAlert" } });
   closeButton.addEventListener("click", () => {
     memberRegistrationState.activeAlert = "";

@@ -4,33 +4,30 @@ const TICKET_STATUS_DEPLETED = "횟수 소진";
 const TICKET_STATUS_EXPIRED = "만료";
 
 export function getTicketStatus(ticket, reservations = [], { memberId = "", petId = "", ticketHistories = [] } = {}) {
-  const usageHistory = getTicketUsageHistory(ticket, reservations, { memberId, petId, ticketHistories });
-  const hasUsage = usageHistory.length > 0
-    || (Array.isArray(ticket?.usageHistory) && ticket.usageHistory.length > 0)
-    || Number(ticket?.reservedCount) > 0
-    || Number(ticket?.deductedCount) > 0;
-  const remainingCount = Number(ticket?.remainingCount ?? ticket?.totalCount) || 0;
   const reservableCount = Number(ticket?.reservableCount ?? ticket?.remainingCount ?? ticket?.totalCount) || 0;
   const todayKey = getDateKey(new Date());
+  const startedAt = getTicketStartDate(ticket, reservations, { memberId, petId, ticketHistories });
   const expiresAt = getTicketExpiryDate(ticket, reservations, { memberId, petId, ticketHistories });
   const expiresAtKey = expiresAt ? getDateKey(expiresAt) : "";
   const depletedAtKey = ticket?.depletedAt ? getDateKey(ticket.depletedAt) : "";
+  const isDepleted = reservableCount <= 0;
+  const isExpired = Boolean(expiresAtKey && todayKey > expiresAtKey);
 
-  if (remainingCount <= 0 && reservableCount <= 0) {
-    if (depletedAtKey && expiresAtKey && depletedAtKey <= expiresAtKey) {
-      return TICKET_STATUS_DEPLETED;
-    }
-    if (!expiresAtKey || todayKey <= expiresAtKey) {
-      return TICKET_STATUS_DEPLETED;
-    }
+  if (isDepleted && (!isExpired || isDepletedBeforeExpiry(depletedAtKey, expiresAtKey))) {
+    return TICKET_STATUS_DEPLETED;
+  }
+
+  if (isExpired) {
     return TICKET_STATUS_EXPIRED;
   }
 
-  if (expiresAtKey && todayKey > expiresAtKey) {
-    return TICKET_STATUS_EXPIRED;
-  }
+  return startedAt ? TICKET_STATUS_USING : TICKET_STATUS_READY;
+}
 
-  return hasUsage ? TICKET_STATUS_USING : TICKET_STATUS_READY;
+function isDepletedBeforeExpiry(depletedAtKey, expiresAtKey) {
+  if (!expiresAtKey) return true;
+  if (!depletedAtKey) return false;
+  return depletedAtKey <= expiresAtKey;
 }
 
 export function getTicketUsageHistory(ticket, reservations = [], { memberId = "", petId = "", ticketHistories = [] } = {}) {
@@ -43,10 +40,18 @@ export function getTicketUsageHistory(ticket, reservations = [], { memberId = ""
   const explicitMatches = relevantReservations.filter((reservation) => isReservationForTicket(reservation, ticket));
 
   if (explicitMatches.length || hasReservationTicketLink || ticketHistories.length > 1) {
-    return explicitMatches;
+    return sortTicketUsageByVisitDate(explicitMatches);
   }
 
-  return relevantReservations;
+  return sortTicketUsageByVisitDate(relevantReservations);
+}
+
+function sortTicketUsageByVisitDate(reservations) {
+  return [...reservations].sort((left, right) => {
+    const visitDateOrder = String(right?.date || "").localeCompare(String(left?.date || ""));
+    if (visitDateOrder !== 0) return visitDateOrder;
+    return getReservationCreatedTime(right).localeCompare(getReservationCreatedTime(left));
+  });
 }
 
 export function getTicketUsageItem(reservation, today = new Date()) {
@@ -102,10 +107,7 @@ export function getTicketStartDate(ticket, reservations = [], { memberId = "", p
   }
 
   if (policy === "first-reservation") {
-    const firstReservation = usageHistory
-      .slice()
-      .sort((left, right) => getReservationCreatedTime(left).localeCompare(getReservationCreatedTime(right)))[0];
-    return parseDate(getReservationCreatedTime(firstReservation));
+    return parseDate(ticket?.issuedAt || ticket?.createdAt);
   }
 
   return null;
@@ -150,18 +152,26 @@ function getReservationCreatedTime(reservation) {
 
 export function getLatestUsedTicketId(reservations = [], { memberId = "", petId = "", ticketHistories = [] } = {}) {
   const ticketHistoryById = new Map((ticketHistories || []).map((ticket) => [ticket.id, ticket]));
-  const latestReservation = (reservations || [])
+  const latestReservation = getLatestTicketReservation(reservations, { memberId, petId });
+
+  if (!latestReservation) return "";
+  const ticketHistory = ticketHistoryById.get(latestReservation.ticketHistoryId);
+  return ticketHistory?.ticketId || latestReservation.ticketId || "";
+}
+
+export function getLatestUsedTicketHistoryId(reservations = [], { memberId = "", petId = "" } = {}) {
+  return getLatestTicketReservation(reservations, { memberId, petId })?.ticketHistoryId || "";
+}
+
+function getLatestTicketReservation(reservations, { memberId, petId }) {
+  return (reservations || [])
     .filter((reservation) => {
       return reservation?.memberId === memberId
         && reservation?.petId === petId
         && String(reservation?.status || "예약").trim() !== "취소"
         && (reservation?.ticketHistoryId || reservation?.ticketId);
     })
-    .sort((left, right) => getReservationCreatedTime(right).localeCompare(getReservationCreatedTime(left)))[0];
-
-  if (!latestReservation) return "";
-  const ticketHistory = ticketHistoryById.get(latestReservation.ticketHistoryId);
-  return ticketHistory?.ticketId || latestReservation.ticketId || "";
+    .sort((left, right) => getReservationCreatedTime(right).localeCompare(getReservationCreatedTime(left)))[0] || null;
 }
 
 function getValidDays(ticket) {

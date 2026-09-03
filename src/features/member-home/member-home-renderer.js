@@ -334,7 +334,7 @@ function createTicketIssueModal(memberHomeState) {
     ticketRows.push(rowState);
   });
   modal.append(table);
-  const footer = createElement("footer", { className: "ticket-issue-modal-footer" });
+  const footer = createElement("footer", { className: "ticket-issue-modal-footer modal-footer-actions" });
   const issueButton = createElement("button", { className: "button button--primary", type: "button", textContent: "지급" });
   issueButton.disabled = true;
   issueButton.disabled = !ticketRows.some((row) => row.selected);

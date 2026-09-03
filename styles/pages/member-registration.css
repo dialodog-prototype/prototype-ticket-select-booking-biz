@@ -365,27 +365,17 @@
 }
 
 .registration-alert-actions {
-  display: flex;
-  gap: var(--space-5);
   width: 100%;
 }
 
 .registration-alert .alert-dialog__button {
-  height: 56px;
+  height: 52px;
   border: 0;
   border-radius: var(--radius-3);
   font-size: 17px;
-  font-weight: 500;
+  font-weight: 700;
 }
 
-.registration-alert .button--alert-secondary {
-  flex: 0 0 160px;
-}
-
-.registration-alert .button--danger,
-.registration-alert .button--primary {
-  flex: 1;
-}
 
 .guardian-edit-modal-overlay {
   position: fixed;

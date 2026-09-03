@@ -465,13 +465,6 @@
   background: var(--color-warning);
 }
 
-.school-registration-actions,
-.pickdrop-registration-modal-footer {
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-}
-
 .school-registration-actions {
   width: min(600px, 100%);
   align-self: center;
@@ -484,7 +477,7 @@
   flex: 1 1 0;
   width: min(300px, 100%);
   min-width: 0;
-  height: 48px;
+  height: 52px;
 }
 
 .school-registration-continue-button:not(:disabled) {
@@ -1145,6 +1138,10 @@
   padding: 0 16px 0 0;
   border-top: 1px solid #f1f1f2;
   background: #ffffff;
+}
+
+.school-reservation-table[data-state="monthlyMemberSearch"] .school-reservation-table-row {
+  grid-template-columns: 40px 78px 110px repeat(3, minmax(0, 1fr));
 }
 
 .school-reservation-table-row.is-header {

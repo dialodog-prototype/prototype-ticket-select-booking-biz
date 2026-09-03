@@ -283,8 +283,7 @@
 .ticket-issue-quantity button { width: 20px; height: 20px; border: 1px solid #d7d7d9; border-radius: 4px; background: #ffffff; color: #666666; line-height: 1; }
 .ticket-issue-quantity button:disabled { color: #c4c4c4; cursor: not-allowed; }
 .ticket-issue-quantity strong { min-width: 12px; }
-.ticket-issue-modal-footer { display: flex; justify-content: center; gap: 8px; padding-top: 20px; }
-.ticket-issue-modal-footer button { min-width: 88px; height: 40px; }
+.ticket-issue-modal-footer { padding-top: 20px; }
 
 .ticket-issue-button {
   min-width: 56px;
@@ -917,6 +916,10 @@
 }
 
 .member-detail-reservation-card[data-state="error"] strong {
+  color: #ed6060;
+}
+
+.member-detail-reservation-card[data-state="warning"] strong {
   color: #ed6060;
 }
 
@@ -1681,6 +1684,128 @@ body[data-page="app-ticket-usage"] .member-ticket-detail-screen {
   font-weight: 700;
 }
 
+.member-ticket-status-edit-sheet-overlay {
+  position: fixed;
+  z-index: 80;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.member-ticket-status-edit-sheet {
+  width: min(100%, 430px);
+  margin: 0 auto;
+  overflow: hidden;
+  border-radius: 24px 24px 0 0;
+  background: #ffffff;
+}
+
+.member-ticket-status-edit-sheet-header {
+  position: relative;
+  height: 56px;
+  display: grid;
+  grid-template-columns: 24px 1fr 24px;
+  align-items: center;
+  padding: 0 16px;
+  border-bottom: 1px solid #eeeeee;
+}
+
+.member-ticket-status-edit-sheet-header h2 {
+  margin: 0;
+  color: #333333;
+  font-size: 17px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.member-ticket-status-edit-sheet-header .button--icon {
+  width: 24px;
+  height: 24px;
+}
+
+.member-ticket-status-edit-sheet-body {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  padding: 32px 16px 0;
+}
+
+.member-ticket-status-edit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  color: #333333;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.member-ticket-status-edit-count {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) 48px;
+  gap: 4px;
+}
+
+.member-ticket-status-edit-count .button {
+  width: 48px;
+  height: 48px;
+  border: 1px solid #d7d7d9;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #333333;
+  font-size: 26px;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.member-ticket-status-edit-count .button:disabled {
+  color: #c4c4c4;
+}
+
+.member-ticket-status-edit-count output,
+.member-ticket-status-edit-field input {
+  width: 100%;
+  height: 48px;
+  box-sizing: border-box;
+  border: 1px solid #c4c4c4;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #333333;
+  font-size: 15px;
+  font-weight: 400;
+}
+
+.member-ticket-status-edit-count output {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.member-ticket-status-edit-field input {
+  padding: 0 15px;
+  font-family: inherit;
+}
+
+.member-ticket-status-edit-sheet-actions {
+  display: flex;
+  gap: 11px;
+  padding: 32px 16px 46px;
+}
+
+.member-ticket-status-edit-sheet-actions .button {
+  flex: 1 1 0;
+  height: 52px;
+  border: 0;
+  border-radius: 8px;
+  font-size: 17px;
+  font-weight: 500;
+}
+
+.member-ticket-status-edit-sheet-actions .button--primary:disabled {
+  background: #d7d7d9;
+  color: #ffffff;
+}
+
 .member-ticket-detail-screen .member-ticket-status-facts {
   border-top: 0;
   padding-top: 0;
@@ -2163,7 +2288,7 @@ body[data-page="app-ticket-usage"] .member-ticket-detail-screen {
 }
 
 .ticket-detail-modal {
-  width: min(640px, calc(100vw - 48px));
+  width: min(760px, calc(100vw - 48px));
   max-height: calc(100vh - 48px);
   overflow-y: auto;
   border-radius: 16px;
@@ -2214,7 +2339,7 @@ body[data-page="app-ticket-usage"] .member-ticket-detail-screen {
 }
 
 .ticket-detail-summary strong {
-  font-size: 26px;
+  font-size: 22px;
 }
 
 .ticket-detail-summary p {
@@ -2239,8 +2364,8 @@ body[data-page="app-ticket-usage"] .member-ticket-detail-screen {
 
 .ticket-detail-facts {
   display: grid;
-  grid-template-columns: 220px 1fr;
-  gap: 18px 16px;
+  grid-template-columns: 160px 1fr;
+  gap: 18px 8px;
   border-top: 1px solid #eeeeee;
   padding-top: 28px;
   font-size: 16px;
@@ -2283,6 +2408,11 @@ body[data-page="app-ticket-usage"] .member-ticket-detail-screen {
   font-size: 15px;
 }
 
+.ticket-detail-usage-table > span:not(.ticket-detail-usage-header-cell) {
+  justify-content: center;
+  text-align: center;
+}
+
 .ticket-detail-usage-header-cell {
   min-height: 52px !important;
   justify-content: center;
@@ -2301,6 +2431,58 @@ body[data-page="app-ticket-usage"] .member-ticket-detail-screen {
   align-items: center;
   justify-content: center;
   color: #999999;
+}
+
+.ticket-detail-modal-actions {
+  margin-top: 36px;
+}
+
+.ticket-detail-cancel-button {
+  background: #ed6060;
+  color: #ffffff;
+}
+
+.ticket-cancel-alert-overlay {
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.36);
+}
+
+.ticket-cancel-alert {
+  width: min(440px, 100%);
+  border-radius: 16px;
+  padding: 32px;
+  background: var(--color-surface);
+}
+
+.ticket-cancel-alert > p {
+  margin: 0 0 24px;
+  color: #ed6060;
+  white-space: pre-line;
+}
+
+.ticket-cancel-alert-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 8px;
+  background: #f6f6f6;
+}
+
+.ticket-cancel-alert-option input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+}
+
+.ticket-cancel-alert-actions {
+  margin-top: 28px;
 }
 
 .pet-detail-optional-info-divider {

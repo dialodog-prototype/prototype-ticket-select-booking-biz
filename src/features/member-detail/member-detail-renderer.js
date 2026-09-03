@@ -1,5 +1,6 @@
 ﻿import { ACTION_BUTTON_STATE } from "../../shared/constants/ui-state.js";
 import { createHeaderIconButton } from "../../shared/components/header-icon-button.js";
+import { createConfirmAlert } from "../../shared/components/alert.js";
 import { renderMemberTagChips } from "../../shared/components/member-tag-chips.js";
 import { initTagInput } from "../../shared/components/member-tag-input.js";
 import { createBusinessNavigation } from "../../shared/components/navigation.js";
@@ -11,18 +12,22 @@ import {
   mergeMemberTagCatalog,
   saveRegisteredMembers,
   saveStoredMembers,
+  updateTicketHistory,
 } from "../../shared/storage/member-storage.js";
+import { writeJsonStorage } from "../../shared/storage/storage-utils.js";
 import {
   getSchoolHomeReservations,
   updateSchoolHomeReservationTicketHistory,
 } from "../../shared/storage/school-home-storage.js";
 import { getTicketList } from "../../shared/data/ticket-list.js";
 import { getActiveTicketReservableCount, getLatestUsedTicketId, getOverbookedReservationCount, getTicketExpiryDate, getTicketStartDate, getTicketStatus, getTicketUsageHistory, getTicketUsageItem } from "../../shared/services/ticket-status-service.js";
+import { cancelTicketIssue } from "../../shared/services/ticket-cancellation-service.js";
 import { createElement } from "../../shared/utils/dom.js";
 import { formatText } from "../../shared/utils/format.js";
 import { formatMemberBirthDate, formatMemberGender, formatMemberWeight, getAgeOutputText, normalizeBirthDateParts } from "../../shared/utils/member-date.js";
 import { formatPhoneNumber } from "../../shared/utils/phone.js";
 import { createOwnerDetailDraft, createPetDetailDraft } from "./member-detail-draft.js";
+import { TICKET_CANCEL_FUTURE_RESERVATIONS_STORAGE_KEY } from "./member-detail-state.js";
 
 const DEFAULT_DOG_PROFILE_IMAGE = "../assets/defaultProfile_dog.svg";
 const CAMERA_ICON_PATH = "../assets/iconCamera.svg";
@@ -193,6 +198,10 @@ function createWebMemberDetailContent(memberDetailState) {
 
   if (memberDetailState.isTicketDetailModalOpen) {
     content.append(createTicketDetailModal(memberDetailState));
+  }
+
+  if (memberDetailState.isTicketCancelAlertOpen) {
+    content.append(createTicketCancelAlert(memberDetailState));
   }
 
   return content;
@@ -628,10 +637,19 @@ export function createAppTicketDetailScreen(memberDetailState, options = {}) {
   if (memberDetailState.appTicketDetailTab === "usage") {
     tabBody.append(createAppTicketUsagePanel(memberDetailState, member, ticket));
   } else {
-    tabBody.append(createAppTicketStatusPanel(memberDetailState, ticket));
+    tabBody.append(createAppTicketStatusPanel(memberDetailState, ticket, onChange));
   }
   body.append(tabBody);
   screen.append(body);
+  if (memberDetailState.isAppTicketStatusEditSheetOpen) {
+    screen.append(createAppTicketStatusEditSheet(memberDetailState, onChange));
+  }
+  if (memberDetailState.isTicketCancelAlertOpen) {
+    screen.append(createTicketCancelAlert(memberDetailState, onChange));
+  }
+  if (memberDetailState.isAppTicketStatusEditBlockedAlertOpen) {
+    screen.append(createAppTicketStatusEditBlockedAlert(memberDetailState, onChange));
+  }
   return screen;
 }
 
@@ -691,7 +709,7 @@ function createAppTicketUsagePanel(memberDetailState, member, ticket) {
   return panel;
 }
 
-function createAppTicketStatusPanel(memberDetailState, ticket) {
+function createAppTicketStatusPanel(memberDetailState, ticket, onChange) {
   const panel = createElement("div", { className: "member-ticket-status-panel" });
   const ticketDateFacts = getTicketDateFacts(memberDetailState, ticket);
   const ticketStatus = getTicketStatusLabel(getTicketStatusForState(memberDetailState, ticket));
@@ -710,10 +728,162 @@ function createAppTicketStatusPanel(memberDetailState, ticket) {
     facts.append(createElement("dt", { textContent: label }), valueElement);
   });
   panel.append(facts);
-  if (ticketStatus !== "사용 전") {
-    panel.append(createElement("button", { className: "member-ticket-status-edit-button", type: "button", textContent: "수정" }));
-  }
+  const editButton = createElement("button", { className: "member-ticket-status-edit-button", type: "button", textContent: "수정" });
+  editButton.addEventListener("click", () => {
+    if (hasOverbookedReservations(memberDetailState)) {
+      memberDetailState.isAppTicketStatusEditBlockedAlertOpen = true;
+      rerenderAppTicketDetail(memberDetailState, onChange);
+      return;
+    }
+    memberDetailState.appTicketStatusDraft = createAppTicketStatusDraft(memberDetailState, ticket);
+    memberDetailState.isAppTicketStatusEditSheetOpen = true;
+    rerenderAppTicketDetail(memberDetailState, onChange);
+  });
+  panel.append(editButton);
   return panel;
+}
+
+function createAppTicketStatusEditBlockedAlert(memberDetailState, onChange) {
+  return createConfirmAlert({
+    className: "alert-dialog ticket-status-edit-blocked-alert",
+    area: "ticketStatusEditBlockedAlert",
+    modal: "ticketStatusEditBlockedAlert",
+    title: "수정 실패",
+    message: "초과 예약이 있는 경우\n이용권 변경이 불가능합니다.\n이용권 지급 후 다시 시도해 주세요.",
+    confirmLabel: "확인",
+    onConfirm: () => {
+      memberDetailState.isAppTicketStatusEditBlockedAlertOpen = false;
+      rerenderAppTicketDetail(memberDetailState, onChange);
+    },
+  });
+}
+
+function createAppTicketStatusEditSheet(memberDetailState, onChange) {
+  const ticket = memberDetailState.selectedTicketHistory || {};
+  const draft = memberDetailState.appTicketStatusDraft || createAppTicketStatusDraft(memberDetailState, ticket);
+  const overlay = createElement("section", {
+    className: "member-ticket-status-edit-sheet-overlay",
+    dataset: { area: "ticketStatusEditSheet", modal: "ticketStatusEditSheet", state: "open" },
+  });
+  overlay.addEventListener("click", (event) => {
+    if (event.target === overlay) closeAppTicketStatusEditSheet(memberDetailState, onChange);
+  });
+  const sheet = createElement("section", { className: "member-ticket-status-edit-sheet" });
+  const header = createElement("header", { className: "member-ticket-status-edit-sheet-header" });
+  const closeButton = createHeaderIconButton({
+    className: "button button--icon",
+    icon: "close",
+    ariaLabel: "이용권 상태 수정 닫기",
+  });
+  closeButton.addEventListener("click", () => closeAppTicketStatusEditSheet(memberDetailState, onChange));
+  header.append(closeButton, createElement("h2", { textContent: "이용권 상태 수정" }), createElement("span", { className: "header-spacer" }));
+  sheet.append(header);
+
+  const body = createElement("div", { className: "member-ticket-status-edit-sheet-body" });
+  const countField = createElement("section", { className: "member-ticket-status-edit-field" });
+  countField.append(createElement("h3", { textContent: "예약 가능 횟수" }));
+  const countControl = createElement("div", { className: "member-ticket-status-edit-count" });
+  const minusButton = createElement("button", { className: "button", type: "button", textContent: "−", ariaLabel: "예약 가능 횟수 줄이기" });
+  minusButton.disabled = draft.reservableCount <= 0;
+  minusButton.addEventListener("click", () => {
+    draft.reservableCount = Math.max(draft.reservableCount - 1, 0);
+    rerenderAppTicketDetail(memberDetailState, onChange);
+  });
+  const countValue = createElement("output", { textContent: `${draft.reservableCount}회` });
+  const plusButton = createElement("button", { className: "button", type: "button", textContent: "+", ariaLabel: "예약 가능 횟수 늘리기" });
+  plusButton.addEventListener("click", () => {
+    draft.reservableCount += 1;
+    rerenderAppTicketDetail(memberDetailState, onChange);
+  });
+  countControl.append(minusButton, countValue, plusButton);
+  countField.append(countControl);
+
+  const expiryField = createElement("label", { className: "member-ticket-status-edit-field" });
+  expiryField.append(createElement("span", { textContent: "만료일" }));
+  const expiryInput = createElement("input", { type: "date", value: draft.expiresAt, dataset: { field: "ticketExpiryDate" } });
+  expiryInput.addEventListener("change", () => {
+    draft.expiresAt = expiryInput.value;
+    rerenderAppTicketDetail(memberDetailState, onChange);
+  });
+  expiryField.append(expiryInput);
+  body.append(countField, expiryField);
+  sheet.append(body);
+
+  const hasChanges = hasAppTicketStatusDraftChanges(memberDetailState, ticket, draft);
+  const actions = createElement("footer", { className: "member-ticket-status-edit-sheet-actions" });
+  if (canCancelTicketIssue(memberDetailState, ticket)) {
+    const cancelButton = createElement("button", { className: "button button--danger", type: "button", textContent: "지급 취소" });
+    cancelButton.addEventListener("click", () => {
+      memberDetailState.isTicketCancelAlertOpen = true;
+      rerenderAppTicketDetail(memberDetailState, onChange);
+    });
+    actions.append(cancelButton);
+  }
+  const submitButton = createElement("button", { className: "button button--primary", type: "button", textContent: "수정" });
+  submitButton.disabled = !hasChanges;
+  submitButton.addEventListener("click", () => {
+    if (!hasChanges) return;
+    submitAppTicketStatusDraft(memberDetailState, draft, onChange);
+  });
+  actions.append(submitButton);
+  sheet.append(actions);
+  overlay.append(sheet);
+  return overlay;
+}
+
+function createAppTicketStatusDraft(memberDetailState, ticket) {
+  const expiresAt = ticket.expiresAt || getDateInputValue(getTicketExpiryDate(ticket, memberDetailState.reservations, {
+    memberId: memberDetailState.selectedMember?.id,
+    petId: memberDetailState.selectedPet?.id,
+    ticketHistories: memberDetailState.selectedPet?.ticketHistories || [],
+  }));
+  return {
+    ticketHistoryId: ticket.id,
+    reservableCount: getTicketReservableCount(ticket),
+    expiresAt,
+  };
+}
+
+function hasAppTicketStatusDraftChanges(memberDetailState, ticket, draft) {
+  const initialDraft = createAppTicketStatusDraft(memberDetailState, ticket);
+  return draft.reservableCount !== initialDraft.reservableCount || draft.expiresAt !== initialDraft.expiresAt;
+}
+
+function submitAppTicketStatusDraft(memberDetailState, draft, onChange) {
+  const result = updateTicketHistory({
+    memberId: memberDetailState.selectedMember?.id,
+    petId: memberDetailState.selectedPet?.id,
+    ticketHistoryId: draft.ticketHistoryId,
+    reservableCount: draft.reservableCount,
+    expiresAt: draft.expiresAt,
+  });
+  memberDetailState.members = result.members;
+  memberDetailState.selectedMember = result.members.find((member) => member.id === memberDetailState.selectedMember?.id) || memberDetailState.selectedMember;
+  memberDetailState.selectedPet = memberDetailState.selectedMember?.pets?.find((pet) => pet.id === memberDetailState.selectedPet?.id) || memberDetailState.selectedPet;
+  memberDetailState.selectedTicketHistory = memberDetailState.selectedPet?.ticketHistories?.find((ticket) => ticket.id === draft.ticketHistoryId) || null;
+  memberDetailState.isAppTicketStatusEditSheetOpen = false;
+  memberDetailState.appTicketStatusDraft = null;
+  memberDetailState.toastMessage = "이용권 상태를 수정했습니다.";
+  rerenderAppTicketDetail(memberDetailState, onChange);
+}
+
+function closeAppTicketStatusEditSheet(memberDetailState, onChange) {
+  memberDetailState.isAppTicketStatusEditSheetOpen = false;
+  memberDetailState.appTicketStatusDraft = null;
+  rerenderAppTicketDetail(memberDetailState, onChange);
+}
+
+function rerenderAppTicketDetail(memberDetailState, onChange) {
+  if (typeof onChange === "function") {
+    onChange();
+    return;
+  }
+  rerender(memberDetailState);
+}
+
+function getDateInputValue(date) {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "";
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
 function createAppTicketUsageUrl(memberDetailState, ticket) {
@@ -1002,9 +1172,7 @@ function createWebTicketHistorySection(memberDetailState, member) {
     const count = createElement("span", {
       className: `member-ticket-count-cell${getRawTicketReservableCount(ticket) < 0 ? " is-error" : ""}`,
     });
-    const minus = createElement("button", { className: "member-ticket-count-button", type: "button", textContent: "−", ariaLabel: "예약 가능 횟수 줄이기" });
-    const plus = createElement("button", { className: "member-ticket-count-button", type: "button", textContent: "+", ariaLabel: "예약 가능 횟수 늘리기" });
-    count.append(minus, createElement("strong", { textContent: formatTicketReservableCount(ticket) }), plus);
+    count.append(createElement("strong", { textContent: formatTicketReservableCount(ticket) }));
     table.append(count);
     table.append(createElement("span", { textContent: ticketDateFacts.expiresAt }));
     table.append(createElement("span", { textContent: ticket.amount ? `${Number(ticket.amount).toLocaleString("ko-KR")}원` : "-" }));
@@ -1072,11 +1240,82 @@ function createTicketDetailModal(memberDetailState) {
   });
   if (!(usageHistory.length || (ticket.usageHistory || []).length)) usage.append(createTicketHistoryPlaceholder("ticket-detail-usage-empty"));
   else usage.append(usageTable);
-  modal.append(usage); overlay.append(modal); return overlay;
+  modal.append(usage);
+
+  const actions = createElement("div", { className: "ticket-detail-modal-actions modal-footer-actions" });
+  if (canCancelTicketIssue(memberDetailState, ticket)) {
+    const cancelButton = createElement("button", {
+      className: "button button--primary button--danger ticket-detail-cancel-button",
+      type: "button",
+      textContent: "지급 취소",
+    });
+    cancelButton.addEventListener("click", () => {
+      memberDetailState.isTicketCancelAlertOpen = true;
+      rerender(memberDetailState);
+    });
+    actions.append(cancelButton);
+    modal.append(actions);
+  }
+  overlay.append(modal);
+  return overlay;
+}
+
+function createTicketCancelAlert(memberDetailState, onChange) {
+  const overlay = createElement("section", { className: "ticket-cancel-alert-overlay", dataset: { area: "ticketCancelAlert", state: "open" } });
+  const alert = createElement("div", { className: "ticket-cancel-alert", role: "alertdialog" });
+  const ticket = memberDetailState.selectedTicketHistory || {};
+  alert.append(
+    createElement("p", { textContent: "이용권 지급을 취소하시겠습니까?\n취소된 지급 내역은 복원할 수 없습니다." }),
+  );
+
+  const reservationLabel = createElement("label", { className: "ticket-cancel-alert-option" });
+  const reservationCheckbox = createElement("input", { type: "checkbox", dataset: { field: "cancelFutureReservations" } });
+  reservationCheckbox.checked = memberDetailState.shouldCancelFutureTicketReservations;
+  reservationCheckbox.addEventListener("change", () => {
+    memberDetailState.shouldCancelFutureTicketReservations = reservationCheckbox.checked;
+    writeJsonStorage(TICKET_CANCEL_FUTURE_RESERVATIONS_STORAGE_KEY, reservationCheckbox.checked);
+  });
+  reservationLabel.append(reservationCheckbox, createElement("span", { textContent: "오늘 포함 미래 예약도 취소" }));
+  alert.append(reservationLabel);
+
+  const actions = createElement("div", { className: "ticket-cancel-alert-actions modal-footer-actions" });
+  const closeButton = createElement("button", { className: "button button--alert-secondary", type: "button", textContent: "닫기" });
+  closeButton.addEventListener("click", () => {
+    memberDetailState.isTicketCancelAlertOpen = false;
+    rerenderAppTicketDetail(memberDetailState, onChange);
+  });
+  const confirmButton = createElement("button", { className: "button button--danger", type: "button", textContent: "지급 취소" });
+  confirmButton.addEventListener("click", () => {
+    const result = cancelTicketIssue({
+      memberId: memberDetailState.selectedMember?.id,
+      petId: memberDetailState.selectedPet?.id,
+      ticketHistoryId: ticket.id,
+      cancelFutureReservations: memberDetailState.shouldCancelFutureTicketReservations,
+    });
+    memberDetailState.members = result.members;
+    memberDetailState.reservations = result.reservations;
+    memberDetailState.selectedMember = result.members.find((member) => member.id === memberDetailState.selectedMember?.id) || memberDetailState.selectedMember;
+    memberDetailState.selectedPet = memberDetailState.selectedMember?.pets?.find((pet) => pet.id === memberDetailState.selectedPet?.id) || memberDetailState.selectedPet;
+    memberDetailState.isTicketCancelAlertOpen = false;
+    memberDetailState.isTicketDetailModalOpen = false;
+    memberDetailState.isAppTicketStatusEditSheetOpen = false;
+    memberDetailState.appTicketStatusDraft = null;
+    memberDetailState.isAppTicketDetailOpen = false;
+    memberDetailState.selectedTicketHistory = null;
+    memberDetailState.toastMessage = result.cancelledReservationIds.length
+      ? "이용권 지급과 오늘부터의 예약을 취소했습니다."
+      : "이용권 지급을 취소했습니다.";
+    rerenderAppTicketDetail(memberDetailState, onChange);
+  });
+  actions.append(closeButton, confirmButton);
+  alert.append(actions);
+  overlay.append(alert);
+  return overlay;
 }
 
 function closeTicketDetailModal(memberDetailState) {
   memberDetailState.isTicketDetailModalOpen = false;
+  memberDetailState.isTicketCancelAlertOpen = false;
   memberDetailState.selectedTicketHistory = null;
   rerender(memberDetailState);
 }
@@ -1224,6 +1463,18 @@ function getReservationDateRuleLabel(rule) {
   return "만료일";
 }
 
+function canCancelTicketIssue(memberDetailState, ticket) {
+  const status = getTicketStatusLabel(getTicketStatusForState(memberDetailState, ticket));
+  return status === "사용 전" || status === "이용 중";
+}
+
+function hasOverbookedReservations(memberDetailState) {
+  return getOverbookedReservationCount(memberDetailState.reservations, {
+    memberId: memberDetailState.selectedMember?.id,
+    petId: memberDetailState.selectedPet?.id,
+  }) > 0;
+}
+
 function getTicketStatusLabel(status) {
   const normalizedStatus = String(status || "").trim().toLowerCase();
   if (normalizedStatus === "using" || normalizedStatus === "이용 중" || normalizedStatus === "이용중") {
@@ -1316,7 +1567,7 @@ function createOwnerDetailModal(memberDetailState) {
 }
 
 function createOwnerDetailActions(memberDetailState) {
-  const actions = createElement("div", { className: "pet-detail-web-actions has-delete" });
+  const actions = createElement("div", { className: "pet-detail-web-actions modal-footer-actions has-delete" });
   const deleteButton = createElement("button", {
     className: "pet-detail-delete-button",
     type: "button",
@@ -1650,8 +1901,8 @@ function createPetDetailTagField(memberDetailState, draft, options = {}) {
 function createPetDetailWebSubmit(memberDetailState) {
   const actions = createElement("div", {
     className: canDeleteSelectedPet(memberDetailState)
-      ? "pet-detail-web-actions has-delete"
-      : "pet-detail-web-actions",
+      ? "pet-detail-web-actions modal-footer-actions has-delete"
+      : "pet-detail-web-actions modal-footer-actions",
   });
 
   if (canDeleteSelectedPet(memberDetailState)) {

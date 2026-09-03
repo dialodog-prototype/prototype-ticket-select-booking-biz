@@ -1,3 +1,26 @@
 .modal__close-button {
   right: 0;
 }
+
+.modal-footer-actions {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-3);
+}
+
+.modal-footer-actions > .button,
+.modal-footer-actions > .pet-detail-delete-button {
+  flex: 1 1 0;
+  width: min(300px, 100%);
+  min-width: 0;
+  height: 52px;
+  border-radius: var(--radius-3);
+}
+
+.modal-footer-actions > .button--danger,
+.modal-footer-actions > .ticket-detail-cancel-button,
+.modal-footer-actions > .pet-detail-delete-button {
+  border: 0;
+  background: var(--color-warning);
+  color: #ffffff;
+}

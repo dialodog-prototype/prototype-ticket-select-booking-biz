@@ -80,17 +80,8 @@
 }
 
 .school-reservation-cancel-alert .alert-dialog__button {
-  min-height: 56px;
-  border-radius: 8px;
+  min-height: 52px;
   font-size: 17px;
-}
-
-.school-reservation-cancel-alert .alert-dialog__button:first-child {
-  flex: 0 0 38%;
-}
-
-.school-reservation-cancel-alert .alert-dialog__button:last-child {
-  flex: 1;
 }
 
 @media (max-width: 430px) {

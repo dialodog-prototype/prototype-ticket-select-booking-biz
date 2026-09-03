@@ -584,7 +584,7 @@ function createDeleteAlert(memberEditState) {
   const content = createElement("div", { className: "registration-alert-content" });
   content.append(createElement("p", { textContent: "회원을 삭제하시겠습니까?\n반려견 정보도 함께 삭제됩니다." }));
 
-  const actions = createElement("div", { className: "registration-alert-actions" });
+  const actions = createElement("div", { className: "registration-alert-actions modal-footer-actions" });
   const closeButton = createElement("button", { className: "button button--alert-secondary alert-dialog__button", type: "button", textContent: "닫기" });
   closeButton.addEventListener("click", () => {
     memberEditState.activeAlert = "";
@@ -610,7 +610,7 @@ function createDeletePetAlert(memberEditState) {
   const content = createElement("div", { className: "registration-alert-content" });
   content.append(createElement("p", { textContent: "반려견을 삭제하시겠습니까?\n삭제한 반려견 정보는 되돌릴 수 없습니다." }));
 
-  const actions = createElement("div", { className: "registration-alert-actions" });
+  const actions = createElement("div", { className: "registration-alert-actions modal-footer-actions" });
   const closeButton = createElement("button", { className: "button button--alert-secondary alert-dialog__button", type: "button", textContent: "닫기" });
   closeButton.addEventListener("click", () => {
     memberEditState.activeAlert = "";

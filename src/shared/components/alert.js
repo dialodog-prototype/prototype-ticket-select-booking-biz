@@ -39,7 +39,7 @@ export function createAlertDialog(options = {}) {
   }
 
   const actions = createElement("div", {
-    className: options.actionsClassName || "alert-dialog-actions",
+    className: `${options.actionsClassName || "alert-dialog-actions"} modal-footer-actions`,
   });
 
   (options.actions || []).forEach((action) => {

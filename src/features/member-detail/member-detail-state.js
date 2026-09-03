@@ -1,6 +1,9 @@
 import { findMemberPet, loadMemberTagCatalog, getStoredMembers, processSchoolTicketAttendance } from "../../shared/storage/member-storage.js";
 import { getSchoolHomeReservations } from "../../shared/storage/school-home-storage.js";
+import { readJsonStorage } from "../../shared/storage/storage-utils.js";
 import { createOwnerDetailDraft, createPetDetailDraft } from "./member-detail-draft.js";
+
+export const TICKET_CANCEL_FUTURE_RESERVATIONS_STORAGE_KEY = "ticketCancelFutureReservations";
 
 export function createMemberDetailState() {
   const queryParams = new URLSearchParams(window.location.search);
@@ -21,8 +24,13 @@ export function createMemberDetailState() {
     activeMemberDetailTab: "memberInfo",
     isTicketDetailModalOpen: false,
     selectedTicketHistory: null,
+    isTicketCancelAlertOpen: false,
+    shouldCancelFutureTicketReservations: readJsonStorage(TICKET_CANCEL_FUTURE_RESERVATIONS_STORAGE_KEY, false) === true,
     isAppTicketDetailOpen: false,
     appTicketDetailTab: "usage",
+    isAppTicketStatusEditSheetOpen: false,
+    isAppTicketStatusEditBlockedAlertOpen: false,
+    appTicketStatusDraft: null,
     reservations,
     isTicketIssueBottomSheetOpen: false,
     ticketIssueSelectedId: "",
