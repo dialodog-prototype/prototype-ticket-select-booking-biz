@@ -14,7 +14,7 @@ import {
 } from "../services/member-tag-service.js";
 import { normalizePhoneNumber } from "../utils/phone.js";
 import { getTicketById } from "../data/ticket-list.js";
-import { getTicketStatus } from "../services/ticket-status-service.js";
+import { getTicketExpiryDate, getTicketStatus } from "../services/ticket-status-service.js";
 
 export const MEMBER_LIST_STORAGE_KEY = "memberList";
 export const LEGACY_MEMBER_LIST_STORAGE_KEY = "prototype.memberTags.memberList";
@@ -426,6 +426,8 @@ export function issueTicketToMemberPet({ memberId, petId, ticket, quantity = 1, 
   }
 
   const issuedAt = new Date().toISOString();
+  const validDays = ticket.unlimitedValidity ? 0 : getTicketValidDays(ticket);
+  const expiresAt = getIssuedTicketExpiryDate(ticket, issuedAt, validDays);
   const ticketHistoryPrefix = `ticket-history-${ticket.id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   let remainingDeduction = deduction;
   const issuedTickets = Array.from({ length: issueQuantity }, (_, index) => {
@@ -445,8 +447,8 @@ export function issueTicketToMemberPet({ memberId, petId, ticket, quantity = 1, 
       quantity: ticketQuantity,
       validity: Number(ticket.validity) || 0,
       unit: ticket.unit || "",
-      validDays: ticket.unlimitedValidity ? 0 : getTicketValidDays(ticket),
-      expiresAt: "",
+      validDays,
+      expiresAt,
       amount: Number(ticket.price) || 0,
       price: Number(ticket.price) || 0,
       startDatePolicy: ticket.startDatePolicy || "",
@@ -742,6 +744,13 @@ function getTicketValidDays(ticket) {
   }
 
   return validity;
+}
+
+function getIssuedTicketExpiryDate(ticket, issuedAt, validDays) {
+  const expiryDate = getTicketExpiryDate({ ...ticket, issuedAt, validDays });
+  if (!expiryDate) return "";
+
+  return `${expiryDate.getFullYear()}-${String(expiryDate.getMonth() + 1).padStart(2, "0")}-${String(expiryDate.getDate()).padStart(2, "0")}`;
 }
 
 function normalizeMemberTags(memberTags) {
