@@ -32,6 +32,14 @@ export function saveSchoolHomeReservation(reservation) {
   return { ...nextReservation };
 }
 
+export function removeSchoolHomeReservation(reservationId) {
+  const reservation = getSchoolHomeReservations().find((item) => item.id === reservationId);
+  if (!reservation) return null;
+  writeJsonStorage(SCHOOL_HOME_RESERVATIONS_STORAGE_KEY,
+    getSchoolHomeReservations().filter((item) => item.id !== reservationId));
+  return reservation;
+}
+
 export function updateSchoolHomeReservationStatus(reservationId, status = "취소") {
   const reservation = getSchoolHomeReservations().find((item) => item.id === reservationId);
   if (!reservation) return null;

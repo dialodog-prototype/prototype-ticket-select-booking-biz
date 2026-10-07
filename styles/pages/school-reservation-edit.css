@@ -1,0 +1,49 @@
+.school-reservation-edit-control {
+  min-height: 56px;
+  height: auto;
+  display: flex;
+  align-items: center;
+  padding: 14px 20px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.school-reservation-edit-control--stacked {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.ticket-change-summary {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.ticket-change-summary__count {
+  display: block;
+  margin: 0;
+  border-radius: var(--radius-2);
+  padding: var(--space-3);
+  background: var(--color-primary-soft);
+  color: var(--color-text);
+}
+
+.ticket-change-summary__after {
+  color: var(--color-primary);
+}
+
+.ticket-change-summary__after[data-state="warning"] {
+  color: var(--color-warning);
+}
+
+@media (max-width: 430px) {
+  .school-reservation-edit-header {
+    grid-template-columns: 42px minmax(0, 1fr) 72px;
+    gap: 4px;
+  }
+
+  .school-reservation-edit-title {
+    position: static;
+    width: auto;
+    transform: none;
+  }
+}

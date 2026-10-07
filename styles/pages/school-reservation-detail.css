@@ -13,7 +13,7 @@
   padding: 0 40px;
 }
 
-.school-reservation-detail-header h1 {
+.school-reservation-detail-title {
   margin: 0;
   text-align: center;
   font-size: 28px;
@@ -165,7 +165,7 @@
     padding: 0 16px 0 12px;
   }
 
-  .school-reservation-detail-header h1 {
+  .school-reservation-detail-title {
     position: absolute;
     left: 50%;
     transform: translateX(-50%);
@@ -293,4 +293,37 @@
     width: 100%;
     height: 48px;
   }
+}
+
+.school-reservation-detail-close {
+  font-size: 28px;
+}
+
+.school-reservation-detail-edit {
+  color: var(--color-primary);
+}
+
+.school-reservation-detail-section-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.school-reservation-detail-date-control {
+  position: relative;
+  cursor: pointer;
+}
+
+.school-reservation-detail-date-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.school-reservation-detail-date-control:focus-within {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
