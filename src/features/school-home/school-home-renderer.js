@@ -15,6 +15,7 @@ import {
   getPetReservableCount,
   getRegistrationValidation,
   getReservationPet,
+  shouldRequireTicketChange,
 } from "./school-home-reservation-service.js";
 import {
   getCalendarMatrix,
@@ -40,6 +41,7 @@ const CALENDAR_ICON_PATH = "../assets/iconCalendar.svg";
 const CHECK_ICON_PATH = "../assets/iconCheckCircle.svg";
 const RESERVATION_SUCCESS_TOAST_MESSAGE = "예약이 등록되었습니다.";
 const TICKET_DEPLETED_TOAST_MESSAGE = "선택한 이용권을 모두 사용했습니다.";
+const TICKET_CHANGE_REQUIRED_TOAST_MESSAGE = "계속 등록 후 이용권을 변경해 주세요.";
 const HEADER_ICON_ACTIONS = {
   설정: "openSettings",
   알림: "openNotifications",
@@ -1452,7 +1454,8 @@ function createReservationDateField(schoolHomeState, draft, { isAppRegistration 
   const title = createElement("h3", { textContent: "날짜" });
   const selectedMember = schoolHomeState.members.find((member) => member.id === draft.memberId);
   const selectedPet = getReservationPet(selectedMember, draft.petId);
-  const selectedTicket = getAvailableReservationTickets(selectedPet).find((ticket) => ticket.id === draft.ticketId)
+  const availableTickets = getAvailableReservationTickets(selectedPet);
+  const selectedTicket = availableTickets.find((ticket) => ticket.id === draft.ticketId)
     || getTicketHistoryById(selectedPet, draft.ticketId);
   const hasSelectedMemberPet = Boolean(selectedMember && selectedPet);
   const isMemberSelected = hasSelectedMemberPet;
@@ -1538,6 +1541,12 @@ function createReservationDateField(schoolHomeState, draft, { isAppRegistration 
       dateButton.addEventListener("click", () => {
         if (isSelected) {
           draft.selectedDates = draft.selectedDates.filter((date) => date !== cell.dateKey);
+        } else if (shouldRequireTicketChange({
+          selectedDateCount: draft.selectedDates.length,
+          selectedTicket: activeTicket,
+          availableTickets,
+        })) {
+          setSchoolHomeToast(schoolHomeState, TICKET_CHANGE_REQUIRED_TOAST_MESSAGE);
         } else {
           draft.selectedDates = [...draft.selectedDates, cell.dateKey].sort();
         }
