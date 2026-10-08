@@ -7,6 +7,7 @@ export function getTicketStatus(ticket, reservations = [], { memberId = "", petI
   const reservableCount = Number(ticket?.reservableCount ?? ticket?.remainingCount ?? ticket?.totalCount) || 0;
   const todayKey = getDateKey(new Date());
   const startedAt = getTicketStartDate(ticket, reservations, { memberId, petId, ticketHistories });
+  if (!startedAt) return TICKET_STATUS_READY;
   const expiresAt = getTicketExpiryDate(ticket, reservations, { memberId, petId, ticketHistories });
   const expiresAtKey = expiresAt ? getDateKey(expiresAt) : "";
   const depletedAtKey = ticket?.depletedAt ? getDateKey(ticket.depletedAt) : "";
@@ -21,7 +22,7 @@ export function getTicketStatus(ticket, reservations = [], { memberId = "", petI
     return TICKET_STATUS_EXPIRED;
   }
 
-  return startedAt ? TICKET_STATUS_USING : TICKET_STATUS_READY;
+  return TICKET_STATUS_USING;
 }
 
 function isDepletedBeforeExpiry(depletedAtKey, expiresAtKey) {
@@ -98,16 +99,19 @@ export function getTicketStartDate(ticket, reservations = [], { memberId = "", p
     return parseDate(ticket?.issuedAt || ticket?.createdAt);
   }
 
-  const usageHistory = getTicketUsageHistory(ticket, reservations, { memberId, petId, ticketHistories });
+  const usageHistory = getTicketUsageHistory(ticket, reservations, { memberId, petId, ticketHistories })
+    .filter((reservation) => isReservationForTicket(reservation, ticket) && reservation.status !== "취소");
   if (policy === "first-attendance") {
-    const firstAttendance = usageHistory
-      .filter((reservation) => isAttendanceReservation(reservation))
+    const earliestReservation = usageHistory
       .sort((left, right) => String(left.date || "").localeCompare(String(right.date || "")))[0];
-    return parseDate(firstAttendance?.date);
+    return parseDate(earliestReservation?.date);
   }
 
   if (policy === "first-reservation") {
-    return parseDate(ticket?.issuedAt || ticket?.createdAt);
+    const firstReservation = [...usageHistory]
+      .sort((left, right) => getReservationCreatedTime(left).localeCompare(getReservationCreatedTime(right)))[0];
+    const actionDate = new Date(firstReservation?.createdAt || firstReservation?.reservedAt || "");
+    return Number.isNaN(actionDate.getTime()) ? null : parseDate(getDateKey(actionDate));
   }
 
   return null;
@@ -134,16 +138,10 @@ function isReservationForTicket(reservation, ticket) {
 
 function normalizeStartDatePolicy(policy) {
   const normalizedPolicy = String(policy || "").trim().toLowerCase();
-  if (["issued-date", "issued", "지급일"].includes(normalizedPolicy)) return "issued-date";
-  if (["first-attendance", "first attendance", "첫 등원일"].includes(normalizedPolicy)) return "first-attendance";
-  if (["first-reservation", "first reservation", "첫 예약일"].includes(normalizedPolicy)) return "first-reservation";
+  if (["issued-date", "issued", "지급일", "issued_at"].includes(normalizedPolicy)) return "issued-date";
+  if (["first-attendance", "first attendance", "첫 등원일", "earliest_booking_date"].includes(normalizedPolicy)) return "first-attendance";
+  if (["first-reservation", "first reservation", "첫 예약일", "first_reservation_action_date"].includes(normalizedPolicy)) return "first-reservation";
   return "";
-}
-
-function isAttendanceReservation(reservation) {
-  if (reservation?.attendedAt) return true;
-  if (String(reservation?.status || "").trim() === "이용 완료") return true;
-  return Boolean(reservation?.date && reservation.date < getDateKey(new Date()));
 }
 
 function getReservationCreatedTime(reservation) {
@@ -184,13 +182,17 @@ function getValidDays(ticket) {
 
 function parseDate(value) {
   if (!value) return null;
+  if (String(value).includes("T")) {
+    const timestamp = new Date(value);
+    return Number.isNaN(timestamp.getTime()) ? null : new Date(timestamp.getFullYear(), timestamp.getMonth(), timestamp.getDate());
+  }
   const parts = String(value).slice(0, 10).split("-").map(Number);
   if (parts.length !== 3 || parts.some((part) => !Number.isFinite(part))) return null;
   const date = new Date(parts[0], parts[1] - 1, parts[2]);
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
-function getDateKey(date) {
+export function getDateKey(date) {
   const normalizedDate = date instanceof Date ? date : parseDate(date);
   if (!normalizedDate) return "";
   return `${normalizedDate.getFullYear()}-${String(normalizedDate.getMonth() + 1).padStart(2, "0")}-${String(normalizedDate.getDate()).padStart(2, "0")}`;

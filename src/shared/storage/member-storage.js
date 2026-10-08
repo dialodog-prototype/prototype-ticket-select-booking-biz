@@ -14,7 +14,7 @@ import {
 } from "../services/member-tag-service.js";
 import { normalizePhoneNumber } from "../utils/phone.js";
 import { getTicketById } from "../data/ticket-list.js";
-import { getTicketExpiryDate, getTicketStatus } from "../services/ticket-status-service.js";
+import { getDateKey, getTicketExpiryDate, getTicketStartDate, getTicketStatus } from "../services/ticket-status-service.js";
 
 export const MEMBER_LIST_STORAGE_KEY = "memberList";
 export const LEGACY_MEMBER_LIST_STORAGE_KEY = "prototype.memberTags.memberList";
@@ -427,6 +427,7 @@ export function issueTicketToMemberPet({ memberId, petId, ticket, quantity = 1, 
 
   const issuedAt = new Date().toISOString();
   const validDays = ticket.unlimitedValidity ? 0 : getTicketValidDays(ticket);
+  const startedAt = getDateKey(getTicketStartDate({ ...ticket, issuedAt }));
   const expiresAt = getIssuedTicketExpiryDate(ticket, issuedAt, validDays);
   const ticketHistoryPrefix = `ticket-history-${ticket.id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   let remainingDeduction = deduction;
@@ -458,7 +459,7 @@ export function issueTicketToMemberPet({ memberId, petId, ticket, quantity = 1, 
       classIds: ticket.classIds ?? null,
       deductedCount: ticketDeduction,
       depletedAt: ticketDeduction >= ticketQuantity ? issuedAt : "",
-      startedAt: "",
+      startedAt,
       issuedAt,
     };
   });
@@ -548,14 +549,18 @@ function syncTicketStatuses(members, reservations) {
     ...member,
     pets: (member.pets || []).map((pet) => ({
       ...pet,
-      ticketHistories: (pet.ticketHistories || []).map((ticket) => ({
-        ...ticket,
-        status: getTicketStatus(ticket, reservations, {
+      ticketHistories: (pet.ticketHistories || []).map((ticket) => {
+        const context = {
           memberId: member.id,
           petId: pet.id,
           ticketHistories: pet.ticketHistories || [],
-        }),
-      })),
+        };
+        const startDate = getTicketStartDate(ticket, reservations, context);
+        const startedAt = ticket.startedAt || getDateKey(startDate);
+        const nextTicket = { ...ticket, startedAt };
+        nextTicket.expiresAt = ticket.expiresAt || getDateKey(getTicketExpiryDate(nextTicket, reservations, context));
+        return { ...nextTicket, status: getTicketStatus(nextTicket, reservations, context) };
+      }),
     })),
   }));
 }

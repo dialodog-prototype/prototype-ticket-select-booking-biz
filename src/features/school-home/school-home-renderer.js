@@ -1,4 +1,5 @@
-﻿import { createEmptyStateElement } from "../../shared/components/empty-state.js";
+import { createSchoolReservationTicketSheet } from "../../shared/components/school-reservation-ticket-sheet.js";
+import { createEmptyStateElement } from "../../shared/components/empty-state.js";
 import { createBusinessNavigation, createDefaultAppBottomNavigation } from "../../shared/components/navigation.js";
 import { createReservationSearchFilter } from "../../shared/components/reservation-search-filter.js";
 import { createSchoolReservationCancelAlert } from "../../shared/components/school-reservation-cancel-alert.js";
@@ -1429,33 +1430,21 @@ function createAppReservationTicketSheet(schoolHomeState) {
   const member = schoolHomeState.members.find((item) => item.id === draft.memberId);
   const pet = getReservationPet(member, draft.petId);
   const tickets = getAvailableReservationTickets(pet);
-  const overlay = createElement("section", { className: "school-app-ticket-sheet-overlay" });
-  overlay.addEventListener("click", (event) => {
-    if (event.target === overlay) { schoolHomeState.isAppReservationTicketSheetOpen = false; rerender(schoolHomeState); }
-  });
-  const sheet = createElement("div", { className: "school-app-ticket-sheet" });
-  const header = createElement("header", { className: "school-app-ticket-sheet-header" });
-  header.append(createElement("h2", { textContent: "이용권 선택" }));
-  const close = createElement("button", { className: "button button--icon", type: "button", textContent: "×", ariaLabel: "이용권 선택 닫기" });
-  close.addEventListener("click", () => { schoolHomeState.isAppReservationTicketSheetOpen = false; rerender(schoolHomeState); });
-  header.append(close); sheet.append(header);
-  const list = createElement("div", { className: "school-app-ticket-sheet-list" });
-  if (!tickets.length) list.append(createElement("p", { className: "school-registration-ticket-empty", textContent: "사용 가능한 이용권이 없습니다." }));
-  tickets.forEach((ticket) => {
-    const option = createElement("button", {
-      className: `school-registration-ticket-option${ticket.id === draft.ticketId ? " is-selected" : ""}`,
-      type: "button",
-      textContent: getReservationTicketDraftRemainingLabel(draft, ticket),
-    });
-    option.disabled = getDraftTicketRemainingCount(draft, ticket) === 0;
-    option.addEventListener("click", () => {
+  return createSchoolReservationTicketSheet({
+    tickets,
+    selectedId: draft.ticketId,
+    getLabel: (ticket) => getReservationTicketDraftRemainingLabel(draft, ticket),
+    isDisabled: (ticket) => getDraftTicketRemainingCount(draft, ticket) === 0,
+    onSelect: (ticket) => {
       selectReservationTicket(draft, ticket.id);
       schoolHomeState.isAppReservationTicketSheetOpen = false;
       rerender(schoolHomeState);
-    });
-    list.append(option);
+    },
+    onClose: () => {
+      schoolHomeState.isAppReservationTicketSheetOpen = false;
+      rerender(schoolHomeState);
+    },
   });
-  sheet.append(list); overlay.append(sheet); return overlay;
 }
 
 function createReservationDateField(schoolHomeState, draft, { isAppRegistration = false } = {}) {

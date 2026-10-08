@@ -15,3 +15,5 @@
 
 @import "./layout/shell.css";
 @import "./layout/responsive.css";
+
+@import "./components/school-reservation-ticket.css";

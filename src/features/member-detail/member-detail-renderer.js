@@ -1,4 +1,4 @@
-﻿import { ACTION_BUTTON_STATE } from "../../shared/constants/ui-state.js";
+import { ACTION_BUTTON_STATE } from "../../shared/constants/ui-state.js";
 import { createHeaderIconButton } from "../../shared/components/header-icon-button.js";
 import { createConfirmAlert } from "../../shared/components/alert.js";
 import { renderMemberTagChips } from "../../shared/components/member-tag-chips.js";
@@ -1450,8 +1450,8 @@ function getTicketDateFacts(memberDetailState, ticket) {
 
 function getTicketStartPolicyLabel(policy) {
   const normalizedPolicy = String(policy || "").trim().toLowerCase();
-  if (["first-attendance", "first attendance", "첫 등원일"].includes(normalizedPolicy)) return "첫 등원일";
-  if (["first-reservation", "first reservation", "첫 예약일"].includes(normalizedPolicy)) return "첫 예약일";
+  if (["first-attendance", "first attendance", "첫 등원일", "earliest_booking_date"].includes(normalizedPolicy)) return "첫 등원일";
+  if (["first-reservation", "first reservation", "첫 예약일", "first_reservation_action_date"].includes(normalizedPolicy)) return "첫 예약일";
   return "지급일";
 }
 
