@@ -20,6 +20,11 @@ export function getPetReservableCount(pet) {
   }, 0);
 }
 
+export function shouldRequireTicketChange({ selectedDateCount = 0, selectedTicket, availableTickets = [] } = {}) {
+  const ticketCapacity = Number(selectedTicket?.reservableCount ?? selectedTicket?.remainingCount) || 0;
+  return availableTickets.length > 1 && selectedDateCount >= ticketCapacity;
+}
+
 export function getRegistrationValidation({ member, pet, ticketSelected = true, selectedDates, reservations, capacityClosedDates, allowOverLimit = false }) {
   const dates = selectedDates || [];
   if (!member || !pet) return { isValid: false, message: "회원을 선택해 주세요." };
