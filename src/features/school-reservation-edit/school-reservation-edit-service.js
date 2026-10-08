@@ -5,6 +5,12 @@ export function getTicketReservableCount(ticket) {
   return Math.max(Number(ticket?.reservableCount ?? ticket?.remainingCount) || 0, 0);
 }
 
+export function getReservedDatesForEdit(reservation, reservations) {
+  return new Set(reservations.filter((item) => item.id !== reservation.id
+    && item.memberId === reservation.memberId && item.petId === reservation.petId
+    && item.status !== "취소").map((item) => item.date));
+}
+
 export function getTicketChangePreview(reservation, tickets, currentTicketId, nextTicketId) {
   const projectedCount = (ticket, selectedId) => {
     const changes = selectedId !== reservation.ticketHistoryId;
@@ -25,9 +31,7 @@ export function saveReservationEdit(reservationId, { date, ticketHistoryId }) {
   const reservation = reservations.find((item) => item.id === reservationId);
   if (!reservation || reservation.status === "취소") return { reservation: null };
   if (!date) return { message: "예약 날짜를 선택해 주세요." };
-  const duplicate = reservations.some((item) => item.id !== reservationId
-    && item.memberId === reservation.memberId && item.petId === reservation.petId
-    && item.status !== "취소" && item.date === date);
+  const duplicate = getReservedDatesForEdit(reservation, reservations).has(date);
   if (duplicate) return { message: "이미 예약된 날짜가 포함되어 있습니다." };
   const member = getStoredMembers().find((item) => item.id === reservation.memberId);
   const pet = member?.pets?.find((item) => item.id === reservation.petId);

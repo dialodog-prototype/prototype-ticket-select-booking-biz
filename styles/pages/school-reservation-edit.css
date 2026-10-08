@@ -13,6 +13,40 @@
   align-items: stretch;
 }
 
+.reservation-datepicker__controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+}
+
+.reservation-datepicker__week {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.reservation-datepicker__date {
+  min-height: 40px;
+  border: 0;
+  background: transparent;
+}
+
+.reservation-datepicker__date[data-state="selected"] {
+  background: var(--color-primary);
+  color: var(--color-surface);
+  font-weight: 700;
+}
+
+.reservation-datepicker__date[data-state="muted"],
+.reservation-datepicker__date:disabled {
+  color: var(--color-text-muted);
+}
+
+.reservation-datepicker__date:disabled {
+  background: var(--color-page);
+  cursor: not-allowed;
+}
+
 .ticket-change-summary {
   display: grid;
   gap: var(--space-3);

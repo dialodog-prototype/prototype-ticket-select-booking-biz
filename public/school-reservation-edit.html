@@ -19,10 +19,9 @@
         <div data-area="reservationInfo"></div>
         <section class="school-reservation-detail-section school-reservation-detail-date-section">
           <h2>예약 날짜</h2>
-          <label class="field__control school-reservation-edit-control school-reservation-detail-date-control">
+          <button class="field__control school-reservation-edit-control" type="button" data-action="editReservationDate" aria-haspopup="dialog" aria-label="예약 날짜 수정">
             <span data-field="reservationDateLabel"></span>
-            <input class="school-reservation-detail-date-input" type="date" data-field="reservationDate" aria-label="예약 날짜" required>
-          </label>
+          </button>
         </section>
         <section class="school-reservation-detail-section school-reservation-detail-ticket-section">
           <div class="school-reservation-detail-section-heading">
@@ -39,6 +38,27 @@
         <button class="button button--primary school-reservation-detail-save-button" type="button" data-action="saveReservationEdit">수정</button>
       </footer>
     </main>
+    <template data-template="reservationDatePicker">
+      <section class="alert-overlay" data-area="reservationDatePicker">
+        <div class="alert-dialog" role="dialog" aria-modal="true" aria-label="예약 날짜 선택">
+          <div class="alert-dialog-content">
+            <strong class="alert-dialog-title">예약 날짜 선택</strong>
+            <div class="reservation-datepicker__controls">
+              <button class="button button--month" type="button" data-action="previousMonth" aria-label="이전 달">‹</button>
+              <strong data-field="calendarMonth" aria-live="polite"></strong>
+              <button class="button button--month" type="button" data-action="nextMonth" aria-label="다음 달">›</button>
+            </div>
+            <div class="reservation-datepicker__week">
+              <span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span>
+            </div>
+            <div data-area="calendarDates"></div>
+          </div>
+          <div class="alert-dialog-actions">
+            <button class="button button--secondary alert-dialog__button" type="button" data-action="closeDatePicker">닫기</button>
+          </div>
+        </div>
+      </section>
+    </template>
     <script type="module" src="../src/platforms/school-reservation-edit.js"></script>
   </body>
 </html>

@@ -7,7 +7,8 @@ import { createAlertDialog, createConfirmAlert } from "../../shared/components/a
 import { cancelSchoolReservation } from "../../shared/services/school-reservation-cancellation-service.js";
 import { getTicketUsageRound } from "../../shared/services/school-reservation-ticket-service.js";
 import { createElement } from "../../shared/utils/dom.js";
-import { getTicketChangePreview, getTicketReservableCount, saveReservationEdit } from "./school-reservation-edit-service.js";
+import { getReservedDatesForEdit, getTicketChangePreview, getTicketReservableCount, saveReservationEdit } from "./school-reservation-edit-service.js";
+import { createReservationDatePicker } from "./school-reservation-edit-datepicker.js";
 
 export function renderSchoolReservationEdit(page, reservationId) {
   const reservation = getSchoolHomeReservations().find((item) => item.id === reservationId);
@@ -26,18 +27,24 @@ export function renderSchoolReservationEdit(page, reservationId) {
     }));
   });
   page.querySelector('[data-area="reservationInfo"]').append(createReservationInfo(reservation, member, pet));
-  const dateInput = page.querySelector('[data-field="reservationDate"]');
   const dateLabel = page.querySelector('[data-field="reservationDateLabel"]');
-  dateInput.value = draft.date;
   dateLabel.textContent = formatReservationDate(draft.date);
-  dateInput.addEventListener("click", () => { try { dateInput.showPicker?.(); } catch { dateInput.focus(); } });
-  dateInput.addEventListener("change", () => {
-    draft.date = dateInput.value;
-    dateLabel.textContent = formatReservationDate(draft.date);
-    updateTicket();
+  const dateButton = page.querySelector('[data-action="editReservationDate"]');
+  dateButton.addEventListener("click", () => {
+    const picker = createReservationDatePicker({
+      selectedDate: draft.date,
+      getDisabledDates: () => getReservedDatesForEdit(reservation, getSchoolHomeReservations()),
+      onSelect: (date) => {
+        draft.date = date;
+        dateLabel.textContent = formatReservationDate(date);
+        updateTicket();
+      },
+      onClose: () => dateButton.focus(),
+    });
+    page.append(picker);
+    picker.querySelector('[data-action="previousMonth"]').focus();
   });
   page.querySelector('[data-action="saveReservationEdit"]').addEventListener("click", () => {
-    if (!dateInput.reportValidity()) return;
     const result = saveReservationEdit(reservation.id, draft);
     if (result.message) {
       const alert = createConfirmAlert({ message: result.message, onConfirm: () => alert.remove() });
