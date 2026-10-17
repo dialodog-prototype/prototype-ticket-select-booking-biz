@@ -1,3 +1,4 @@
+import { createModalOverlay } from "../../shared/components/modal.js";
 import { ACTION_BUTTON_STATE } from "../../shared/constants/ui-state.js";
 import { createElement } from "../../shared/utils/dom.js";
 import { formatText } from "../../shared/utils/format.js";
@@ -167,7 +168,7 @@ function createPetListItem(memberEditState, pet) {
 }
 
 function createPetBottomSheet(memberEditState, title, draft, onSubmit, submitText = "수정", modalName = "petDetailBottomSheet") {
-  const overlay = createElement("section", { className: "pet-bottom-sheet-overlay", dataset: { area: modalName, modal: modalName, state: "open" } });
+  const overlay = createModalOverlay({ className: "pet-bottom-sheet-overlay", dataset: { area: modalName, modal: modalName, state: "open" } });
   const sheet = createElement("div", { className: "pet-bottom-sheet" });
   const header = createElement("header", { className: "bottom-sheet-header" });
   const closeButton = createHeaderIconButton({
@@ -579,7 +580,7 @@ function submitGuardianEdit(memberEditState) {
 }
 
 function createDeleteAlert(memberEditState) {
-  const overlay = createElement("section", { className: "registration-alert-overlay", dataset: { area: "deleteMemberAlert", modal: "deleteMemberAlert", state: "open" } });
+  const overlay = createModalOverlay({ className: "registration-alert-overlay", dataset: { area: "deleteMemberAlert", modal: "deleteMemberAlert", state: "open" } });
   const alert = createElement("div", { className: "registration-alert" });
   const content = createElement("div", { className: "registration-alert-content" });
   content.append(createElement("p", { textContent: "회원을 삭제하시겠습니까?\n반려견 정보도 함께 삭제됩니다." }));
@@ -605,7 +606,7 @@ function createDeleteAlert(memberEditState) {
 }
 
 function createDeletePetAlert(memberEditState) {
-  const overlay = createElement("section", { className: "registration-alert-overlay", dataset: { area: "deletePetAlert", modal: "deletePetAlert", state: "open" } });
+  const overlay = createModalOverlay({ className: "registration-alert-overlay", dataset: { area: "deletePetAlert", modal: "deletePetAlert", state: "open" } });
   const alert = createElement("div", { className: "registration-alert" });
   const content = createElement("div", { className: "registration-alert-content" });
   content.append(createElement("p", { textContent: "반려견을 삭제하시겠습니까?\n삭제한 반려견 정보는 되돌릴 수 없습니다." }));

@@ -4,6 +4,8 @@ import { getDateKey, getTicketExpiryDate } from "../../shared/services/ticket-st
 import { isReservationTicketAvailable } from "../../shared/services/school-reservation-ticket-service.js";
 import { saveReservationEdit } from "../school-reservation-edit/school-reservation-edit-service.js";
 
+export const NO_RESERVATION_TICKET_CHANGE_MESSAGE = "변경할 수 있는 이용권이 없습니다.\n이용권을 먼저 지급하세요.";
+
 export function saveReservationMemo(reservationId, memo) {
   const reservation = getSchoolHomeReservations().find((item) => item.id === reservationId);
   if (!reservation || reservation.status === "취소") return null;

@@ -21,8 +21,5 @@ export function createSchoolReservationCancelAlert({ onClose, onConfirm } = {}) 
       { label: "예약 취소", variant: "danger", onClick: confirm },
     ],
   });
-  overlay.addEventListener("click", (event) => {
-    if (event.target === overlay) close();
-  });
   return overlay;
 }

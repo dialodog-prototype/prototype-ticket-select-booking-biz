@@ -1,3 +1,4 @@
+import { createModalOverlay } from "../../shared/components/modal.js";
 import { ACTION_BUTTON_STATE } from "../../shared/constants/ui-state.js";
 import { createHeaderIconButton } from "../../shared/components/header-icon-button.js";
 import { createConfirmAlert } from "../../shared/components/alert.js";
@@ -766,12 +767,9 @@ function createAppTicketStatusEditBlockedAlert(memberDetailState, onChange) {
 function createAppTicketStatusEditSheet(memberDetailState, onChange) {
   const ticket = memberDetailState.selectedTicketHistory || {};
   const draft = memberDetailState.appTicketStatusDraft || createAppTicketStatusDraft(memberDetailState, ticket);
-  const overlay = createElement("section", {
+  const overlay = createModalOverlay({
     className: "member-ticket-status-edit-sheet-overlay",
     dataset: { area: "ticketStatusEditSheet", modal: "ticketStatusEditSheet", state: "open" },
-  });
-  overlay.addEventListener("click", (event) => {
-    if (event.target === overlay) closeAppTicketStatusEditSheet(memberDetailState, onChange);
   });
   const sheet = createElement("section", { className: "member-ticket-status-edit-sheet" });
   const header = createElement("header", { className: "member-ticket-status-edit-sheet-header" });
@@ -939,14 +937,13 @@ function createTicketIssuePrimaryButton(memberDetailState, member) {
 function createTicketIssueBottomSheet(memberDetailState, member) {
   const tickets = getTicketList("school");
   const selectedTicket = tickets.find((ticket) => ticket.id === memberDetailState.ticketIssueSelectedId);
-  const overlay = createElement("section", { className: "member-ticket-issue-sheet-overlay", dataset: { area: "ticketIssueBottomSheet", state: "open" } });
+  const overlay = createModalOverlay({ className: "member-ticket-issue-sheet-overlay", dataset: { area: "ticketIssueBottomSheet", state: "open" } });
   const closeSheet = () => {
     memberDetailState.isTicketIssueBottomSheetOpen = false;
     memberDetailState.ticketIssueSelectedId = "";
     memberDetailState.ticketIssueQuantity = 1;
     rerender(memberDetailState);
   };
-  overlay.addEventListener("click", (event) => { if (event.target === overlay) closeSheet(); });
 
   const sheet = createElement("div", { className: "member-ticket-issue-sheet" });
   const header = createElement("header", { className: "member-ticket-issue-sheet-header" });
@@ -1201,10 +1198,7 @@ function createWebTicketHistorySection(memberDetailState, member) {
 
 function createTicketDetailModal(memberDetailState) {
   const ticket = memberDetailState.selectedTicketHistory || {};
-  const overlay = createElement("section", { className: "ticket-detail-modal-overlay", dataset: { area: "ticketDetailModal", state: "open" } });
-  overlay.addEventListener("click", (event) => {
-    if (event.target === overlay) closeTicketDetailModal(memberDetailState);
-  });
+  const overlay = createModalOverlay({ className: "ticket-detail-modal-overlay", dataset: { area: "ticketDetailModal", state: "open" } });
   const modal = createElement("div", { className: "ticket-detail-modal" });
   const header = createElement("header", { className: "ticket-detail-modal-header" });
   header.append(createElement("h2", { textContent: "이용권 상세" }));
@@ -1279,7 +1273,7 @@ function createTicketDetailModal(memberDetailState) {
 }
 
 function createTicketCancelAlert(memberDetailState, onChange) {
-  const overlay = createElement("section", { className: "ticket-cancel-alert-overlay", dataset: { area: "ticketCancelAlert", state: "open" } });
+  const overlay = createModalOverlay({ className: "ticket-cancel-alert-overlay", dataset: { area: "ticketCancelAlert", state: "open" } });
   const alert = createElement("div", { className: "ticket-cancel-alert", role: "alertdialog" });
   const ticket = memberDetailState.selectedTicketHistory || {};
   alert.append(
@@ -1551,7 +1545,7 @@ function getTicketValidityText(ticketHistory) {
 }
 
 function createOwnerDetailModal(memberDetailState) {
-  const overlay = createElement("section", {
+  const overlay = createModalOverlay({
     className: "pet-detail-modal-overlay",
     dataset: { area: "ownerDetailModal", modal: "ownerDetail", state: "open" },
   });
@@ -1662,7 +1656,7 @@ function createOwnerAddressField(memberDetailState) {
 }
 
 function createPetDetailModal(memberDetailState) {
-  const overlay = createElement("section", {
+  const overlay = createModalOverlay({
     className: "pet-detail-modal-overlay",
     dataset: { area: "petDetailModal", modal: "petDetail", state: "open" },
   });
@@ -1689,7 +1683,7 @@ function createPetDetailModal(memberDetailState) {
 }
 
 function createPetDetailBottomSheet(memberDetailState) {
-  const overlay = createElement("section", {
+  const overlay = createModalOverlay({
     className: "pet-bottom-sheet-overlay",
     dataset: { area: "petDetailBottomSheet", modal: "petDetailBottomSheet", state: "open" },
   });

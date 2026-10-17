@@ -1,3 +1,4 @@
+import { createModalOverlay } from "./modal.js";
 import { createEmptyStateElement } from "./empty-state.js";
 import { sortMemberTagNames } from "../services/member-tag-service.js";
 import { createElement } from "../utils/dom.js";
@@ -256,7 +257,7 @@ function createReservationTagFilter(state, options) {
 }
 
 function createReservationTagBottomSheet(state, options) {
-  const overlay = createElement("section", {
+  const overlay = createModalOverlay({
     className: "tag-bottom-sheet-overlay reservation-tag-bottom-sheet-overlay",
     dataset: { area: "reservationTagBottomSheet", modal: "reservationTagBottomSheet", state: "open" },
   });

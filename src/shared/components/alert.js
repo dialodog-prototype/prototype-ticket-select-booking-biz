@@ -1,7 +1,8 @@
+import { createModalOverlay } from "./modal.js";
 import { createElement } from "../utils/dom.js";
 
 export function createAlertDialog(options = {}) {
-  const overlay = createElement("section", {
+  const overlay = createModalOverlay({
     className: options.overlayClassName || "alert-overlay",
     dataset: {
       area: options.area || "alertDialog",

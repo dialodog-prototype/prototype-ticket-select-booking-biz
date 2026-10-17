@@ -1,3 +1,4 @@
+import { prepareModalOverlay } from "../../shared/components/modal.js";
 import { getTicketChangePreview, getTicketReservableCount } from "../school-reservation-edit/school-reservation-edit-service.js";
 import { getReservationTicketOptions, saveReservationTicketChange } from "./school-reservation-detail-service.js";
 import { createElement } from "../../shared/utils/dom.js";
@@ -10,7 +11,8 @@ export function openReservationTicketEdit(page, reservation, trigger, onSave) {
   const options = getReservationTicketOptions(reservation);
   let selectedId = reservation.ticketHistoryId || "";
   const rows = new Map();
-  const close = () => { overlay.remove(); trigger.focus(); };
+  const close = () => overlay.remove();
+  prepareModalOverlay(overlay, { onEscape: close, returnFocusTo: trigger });
   const updatePreview = () => {
     const changes = getTicketChangePreview(reservation, options.tickets, reservation.ticketHistoryId, selectedId);
     rows.forEach(({ row, ticket }) => {
@@ -54,16 +56,6 @@ export function openReservationTicketEdit(page, reservation, trigger, onSave) {
     onSave();
   });
   overlay.querySelector('[data-action="cancelTicketEdit"]').addEventListener("click", close);
-  overlay.addEventListener("click", (event) => { if (event.target === overlay) close(); });
-  overlay.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") { event.preventDefault(); close(); }
-    if (event.key === "Tab") {
-      const controls = [...form.querySelectorAll('button:not(:disabled), input[type="radio"]')].filter((control) => control.type !== "radio" || control.checked || (!form.querySelector("input:checked") && control === form.querySelector("input")));
-      const first = controls[0], last = controls[controls.length - 1];
-      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
-      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
-    }
-  });
   page.append(overlay);
   (overlay.querySelector('input[type="radio"]') || overlay.querySelector('[data-action="cancelTicketEdit"]')).focus();
 }

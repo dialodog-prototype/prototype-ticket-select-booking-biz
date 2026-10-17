@@ -14,7 +14,7 @@ let reservationDetailToastDismissTimer = null;
 export function renderSchoolReservationDetail(rootElement, reservationId, toastMessage = "") {
   const reservations = getSchoolHomeReservations();
   const reservation = reservations.find((item) => item.id === reservationId);
-  if (!reservation) { window.location.replace("./index.html"); return; }
+  if (!reservation || reservation.status === "취소") { window.location.replace("./index.html"); return; }
   rootElement.innerHTML = "";
   if (!isAppViewport()) {
     rootElement.append(createWebReservationDetail(reservation));

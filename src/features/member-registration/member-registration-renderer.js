@@ -1,4 +1,5 @@
-﻿import { ACTION_BUTTON_STATE } from "../../shared/constants/ui-state.js";
+import { createModalOverlay } from "../../shared/components/modal.js";
+import { ACTION_BUTTON_STATE } from "../../shared/constants/ui-state.js";
 import { renderMemberTagChips } from "../../shared/components/member-tag-chips.js";
 import { initTagInput } from "../../shared/components/member-tag-input.js";
 import { createBusinessNavigation } from "../../shared/components/navigation.js";
@@ -640,7 +641,7 @@ function createMobilePrimaryButton(textContent, isEnabled = false, memberRegistr
 }
 
 function createGuardianEditModal(memberRegistrationState) {
-  const overlay = createElement("section", { className: "guardian-edit-modal-overlay", dataset: { area: "guardianEditModal", modal: "guardianEdit", state: "open" } });
+  const overlay = createModalOverlay({ className: "guardian-edit-modal-overlay", dataset: { area: "guardianEditModal", modal: "guardianEdit", state: "open" } });
   const modal = createElement("div", { className: "guardian-edit-modal" });
 
   const header = createElement("div", { className: "modal-title-row" });
@@ -728,7 +729,7 @@ function createGuardianEditPage(memberRegistrationState) {
 }
 
 function createAddPetBottomSheet(memberRegistrationState) {
-  const overlay = createElement("section", { className: "pet-bottom-sheet-overlay", dataset: { area: "addPetBottomSheet", modal: "addPetBottomSheet", state: "open" } });
+  const overlay = createModalOverlay({ className: "pet-bottom-sheet-overlay", dataset: { area: "addPetBottomSheet", modal: "addPetBottomSheet", state: "open" } });
   const sheet = createElement("div", { className: "pet-bottom-sheet" });
   const draftPet = memberRegistrationState.addPetDraft || createEmptyPetForm();
 
@@ -777,7 +778,7 @@ function createAddPetBottomSheet(memberRegistrationState) {
 
 function createRegistrationAlert(memberRegistrationState) {
   const isCancelAlert = memberRegistrationState.activeAlert === "cancel";
-  const overlay = createElement("section", {
+  const overlay = createModalOverlay({
     className: "registration-alert-overlay",
     dataset: { area: "registrationAlert", modal: "registrationAlert", state: memberRegistrationState.activeAlert },
   });

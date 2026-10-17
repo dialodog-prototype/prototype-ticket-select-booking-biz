@@ -1,4 +1,5 @@
-﻿import { createEmptyStateElement } from "../../shared/components/empty-state.js";
+import { createModalOverlay } from "../../shared/components/modal.js";
+import { createEmptyStateElement } from "../../shared/components/empty-state.js";
 import { createHeaderIconButton } from "../../shared/components/header-icon-button.js";
 import { createBusinessNavigation, createDefaultAppBottomNavigation } from "../../shared/components/navigation.js";
 import { createToast, TOAST_AUTO_DISMISS_MS } from "../../shared/components/toast.js";
@@ -238,14 +239,13 @@ function createTicketIssueModal(memberHomeState) {
     ticketHistories: pet?.ticketHistories,
   });
   const ticketRows = [];
-  const overlay = createElement("section", { className: "ticket-issue-modal-overlay", dataset: { area: "ticketIssueModal", state: "open" } });
+  const overlay = createModalOverlay({ className: "ticket-issue-modal-overlay", dataset: { area: "ticketIssueModal", state: "open" } });
   const closeModal = () => {
     memberHomeState.isTicketIssueModalOpen = false;
     memberHomeState.ticketIssueMemberId = "";
     memberHomeState.ticketIssuePetId = "";
     renderMemberHome(document.querySelector("#app"), memberHomeState);
   };
-  overlay.addEventListener("click", (event) => { if (event.target === overlay) closeModal(); });
   const modal = createElement("div", { className: "ticket-issue-modal" });
   const header = createElement("header", { className: "ticket-issue-modal-header" });
   header.append(createElement("h2", { textContent: "이용권 지급" }));
@@ -474,7 +474,7 @@ function getTicketIssueOverbookedReservations(reservations = [], memberId = "", 
 }
 
 function createGuardianLookupModal(memberHomeState) {
-  const overlay = createElement("section", {
+  const overlay = createModalOverlay({
     className: "guardian-modal-overlay",
     dataset: { area: "guardianLookupModal", modal: "guardianLookup", state: "open" },
   });
@@ -891,7 +891,7 @@ function createMobileTagFilterButton(memberHomeState) {
 }
 
 function createMobileTagBottomSheet(memberHomeState) {
-  const overlay = createElement("section", {
+  const overlay = createModalOverlay({
     className: "tag-bottom-sheet-overlay",
     dataset: { area: "memberTagBottomSheet", modal: "memberTagBottomSheet", state: "open" },
   });
@@ -1518,7 +1518,7 @@ function createMemberEmptyState(listState) {
 }
 
 function createMemberTagManagementModal(memberHomeState) {
-  const overlay = createElement("section", {
+  const overlay = createModalOverlay({
     className: "member-tag-management-overlay",
     dataset: { area: "memberTagManagement", modal: "memberTagManagement", state: "open" },
   });
@@ -1756,16 +1756,9 @@ function createMemberTagOptionMenu(memberHomeState, memberTagName) {
 
 function createMemberTagEditBottomSheet(memberHomeState) {
   const sourceTag = memberHomeState.activeMemberTagSheetTagName;
-  const overlay = createElement("section", {
+  const overlay = createModalOverlay({
     className: "member-tag-edit-sheet-overlay",
     dataset: { area: "memberTagEditBottomSheet", modal: "memberTagEditBottomSheet", state: "open" },
-  });
-  overlay.addEventListener("click", (event) => {
-    if (event.target !== overlay) {
-      return;
-    }
-
-    closeMemberHomeTagEditSheet(memberHomeState);
   });
 
   const sheet = createElement("div", { className: "member-tag-edit-sheet" });

@@ -1,3 +1,4 @@
+import { prepareModalOverlay } from "../../shared/components/modal.js";
 import { createWebHeader, createSchoolNavigation } from "../school-home/school-home-renderer.js";
 import { getSchoolHomeReservations } from "../../shared/storage/school-home-storage.js";
 import { getStoredMembers } from "../../shared/storage/member-storage.js";
@@ -9,7 +10,7 @@ import { createSchoolReservationCancelAlert } from "../../shared/components/scho
 import { cancelSchoolReservation } from "../../shared/services/school-reservation-cancellation-service.js";
 import { createToast, TOAST_AUTO_DISMISS_MS } from "../../shared/components/toast.js";
 import { saveReservationEdit } from "../school-reservation-edit/school-reservation-edit-service.js";
-import { saveReservationMemo } from "./school-reservation-detail-service.js";
+import { getReservationTicketOptions, NO_RESERVATION_TICKET_CHANGE_MESSAGE, saveReservationMemo } from "./school-reservation-detail-service.js";
 import { openReservationTicketEdit } from "./school-reservation-ticket-edit.js";
 
 export function createWebReservationDetail(reservation) {
@@ -65,6 +66,10 @@ export function createWebReservationDetail(reservation) {
   ticketEditButton.addEventListener("click", () => {
     const current = getSchoolHomeReservations().find((item) => item.id === reservation.id);
     if (!current) { window.location.replace("./index.html"); return; }
+    if (!getReservationTicketOptions(current).availableTickets.length) {
+      showSavedToast(page, NO_RESERVATION_TICKET_CHANGE_MESSAGE);
+      return;
+    }
     openReservationTicketEdit(page, current, ticketEditButton, () => {
       updateDate();
       showSavedToast(page, "이용권을 변경했습니다");
@@ -87,7 +92,8 @@ function openDateEdit(page, reservation, trigger, onSave) {
   const saveButton = overlay.querySelector('[data-action="saveReservationDate"]');
   const error = overlay.querySelector('[data-field="dateError"]');
   date.value = reservation.date;
-  const close = () => { overlay.remove(); trigger.focus(); };
+  const close = () => overlay.remove();
+  prepareModalOverlay(overlay, { onEscape: close, returnFocusTo: trigger });
   date.addEventListener("input", () => {
     saveButton.disabled = !date.validity.valid || date.value === reservation.date;
     error.textContent = "";
@@ -104,16 +110,6 @@ function openDateEdit(page, reservation, trigger, onSave) {
     onSave();
   });
   overlay.querySelector('[data-action="closeDateEdit"]').addEventListener("click", close);
-  overlay.addEventListener("click", (event) => { if (event.target === overlay) close(); });
-  overlay.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") { event.preventDefault(); close(); }
-    if (event.key === "Tab") {
-      const controls = [...form.querySelectorAll("button:not(:disabled), input")];
-      const first = controls[0], last = controls[controls.length - 1];
-      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
-      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
-    }
-  });
   page.append(overlay);
   date.focus();
 }

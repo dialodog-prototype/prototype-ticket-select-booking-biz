@@ -1,14 +1,11 @@
+import { createModalOverlay } from "./modal.js";
 import { createElement } from "../utils/dom.js";
 
 export function createSchoolReservationTicketSheet({ tickets, selectedId, getLabel, isDisabled = () => false, onSelect, onClose }) {
-  const overlay = createElement("section", { className: "school-app-ticket-sheet-overlay", dataset: { area: "reservationTicketSheet" } });
-  const sheet = createElement("div", { className: "school-app-ticket-sheet" });
-  sheet.setAttribute("role", "dialog");
-  sheet.setAttribute("aria-modal", "true");
-  sheet.setAttribute("aria-label", "이용권 선택");
   const close = () => { overlay.remove(); onClose?.(); };
-  overlay.addEventListener("click", (event) => { if (event.target === overlay) close(); });
-  overlay.addEventListener("keydown", (event) => { if (event.key === "Escape") close(); });
+  const overlay = createModalOverlay({ className: "school-app-ticket-sheet-overlay", dataset: { area: "reservationTicketSheet" } }, { onEscape: close });
+  const sheet = createElement("div", { className: "school-app-ticket-sheet" });
+  sheet.setAttribute("aria-label", "이용권 선택");
   const header = createElement("header", { className: "school-app-ticket-sheet-header" });
   const closeButton = createElement("button", { className: "button button--icon", type: "button", textContent: "×", ariaLabel: "이용권 선택 닫기", dataset: { action: "closeTicketSheet" } });
   closeButton.addEventListener("click", close);

@@ -1,3 +1,4 @@
+import { createModalOverlay } from "../../shared/components/modal.js";
 import { createSchoolReservationTicketSheet } from "../../shared/components/school-reservation-ticket-sheet.js";
 import { createEmptyStateElement } from "../../shared/components/empty-state.js";
 import { createBusinessNavigation, createDefaultAppBottomNavigation } from "../../shared/components/navigation.js";
@@ -675,6 +676,7 @@ function createWebReservationRow(schoolHomeState, reservation, showReservationDa
   row.append(createElement("span", { textContent: reservation.petName }));
   row.append(createElement("span", { textContent: reservation.breed }));
   row.append(createElement("span", { textContent: reservation.guardianName || "-" }));
+  if (reservation.status === "취소") return row;
   const more = createElement("button", {
     className: "button button--icon",
     type: "button",
@@ -750,12 +752,9 @@ function createPickdropRosterModal(schoolHomeState) {
   const rosterDate = schoolHomeState.pickdropRosterDate || schoolHomeState.selectedDate;
   const rosterType = schoolHomeState.pickdropRosterType;
   const rosterCounts = getPickdropRosterCounts(schoolHomeState.pickdropReservations, rosterDate);
-  const overlay = createElement("section", {
+  const overlay = createModalOverlay({
     className: "pickdrop-roster-overlay",
     dataset: { area: "pickdropRoster", modal: "pickdropRoster", state: "open" },
-  });
-  overlay.addEventListener("click", (event) => {
-    if (event.target === overlay) closePickdropRosterModal(schoolHomeState);
   });
   const modal = createElement("section", { className: "pickdrop-roster-modal" });
   const header = createElement("header", { className: "pickdrop-roster-header" });
@@ -1199,12 +1198,9 @@ function closeReservationRegisterModal(schoolHomeState) {
 
 function createReservationRegisterModal(schoolHomeState) {
   const draft = schoolHomeState.reservationRegisterDraft;
-  const overlay = createElement("section", {
+  const overlay = createModalOverlay({
     className: "school-registration-modal-overlay",
     dataset: { area: "schoolReservationRegisterModal", modal: "schoolReservationRegister", state: "open" },
-  });
-  overlay.addEventListener("click", (event) => {
-    if (event.target === overlay) closeReservationRegisterModal(schoolHomeState);
   });
 
   const modal = createElement("div", { className: "school-registration-modal" });
@@ -1639,7 +1635,7 @@ function createReservationRegistrationFooter(schoolHomeState, draft, { isAppRegi
 
 function createPickdropReservationModal(schoolHomeState) {
   const draft = schoolHomeState.reservationRegisterDraft;
-  const overlay = createElement("section", {
+  const overlay = createModalOverlay({
     className: "pickdrop-registration-modal-overlay",
     dataset: { area: "pickdropReservationModal", modal: "pickdropReservation", state: "open" },
   });

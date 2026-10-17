@@ -6,10 +6,11 @@ import { createSchoolReservationCancelAlert } from "../../shared/components/scho
 import { createAlertDialog, createConfirmAlert } from "../../shared/components/alert.js";
 import { cancelSchoolReservation } from "../../shared/services/school-reservation-cancellation-service.js";
 import { getTicketUsageRound, isReservationTicketAvailable } from "../../shared/services/school-reservation-ticket-service.js";
-import { getReservationTicketOptions } from "../school-reservation-detail/school-reservation-detail-service.js";
+import { getReservationTicketOptions, NO_RESERVATION_TICKET_CHANGE_MESSAGE } from "../school-reservation-detail/school-reservation-detail-service.js";
 import { createElement } from "../../shared/utils/dom.js";
 import { getReservedDatesForEdit, getTicketChangePreview, getTicketReservableCount, saveReservationEdit } from "./school-reservation-edit-service.js";
 import { createReservationDatePicker } from "./school-reservation-edit-datepicker.js";
+import { createToast, TOAST_AUTO_DISMISS_MS } from "../../shared/components/toast.js";
 
 export function renderSchoolReservationEdit(page, reservationId) {
   const reservation = getSchoolHomeReservations().find((item) => item.id === reservationId);
@@ -70,6 +71,13 @@ export function renderSchoolReservationEdit(page, reservationId) {
     const trigger = event.currentTarget;
     const tickets = pet?.ticketHistories || [];
     const options = getReservationTicketOptions(reservation);
+    if (!options.availableTickets.length) {
+      page.querySelector('[data-role="toast"]')?.remove();
+      const toast = createToast(NO_RESERVATION_TICKET_CHANGE_MESSAGE);
+      page.append(toast);
+      window.setTimeout(() => toast.remove(), TOAST_AUTO_DISMISS_MS);
+      return;
+    }
     const sheet = createSchoolReservationTicketSheet({
       tickets: [options.currentTicket, ...options.availableTickets].filter(Boolean),
       selectedId: draft.ticketHistoryId,

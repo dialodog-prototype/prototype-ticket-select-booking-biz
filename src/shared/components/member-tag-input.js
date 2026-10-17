@@ -1,3 +1,4 @@
+import { createModalOverlay } from "./modal.js";
 import {
   buildTagSuggestions,
   hasMemberTagName,
@@ -359,7 +360,7 @@ export function initTagInput({
   }
 
   function createMobileTagSearchScreen() {
-    const overlay = createElement("section", {
+    const overlay = createModalOverlay({
       className: "member-tag-search-screen tag-bottom-sheet-overlay member-tag-input-sheet-overlay",
       dataset: { area: "memberTagSearch", modal: "memberTagSearch", state: "open" },
     });
