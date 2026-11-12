@@ -1,4 +1,4 @@
-import { prepareModalOverlay } from "../../shared/components/modal.js";
+import { createConfirmAlert } from "../../shared/components/alert.js";
 import { createWebHeader, createSchoolNavigation } from "../school-home/school-home-renderer.js";
 import { getSchoolHomeReservations } from "../../shared/storage/school-home-storage.js";
 import { getStoredMembers } from "../../shared/storage/member-storage.js";
@@ -9,7 +9,8 @@ import { getTicketUsageItem } from "../../shared/services/ticket-status-service.
 import { createSchoolReservationCancelAlert } from "../../shared/components/school-reservation-cancel-alert.js";
 import { cancelSchoolReservation } from "../../shared/services/school-reservation-cancellation-service.js";
 import { createToast, TOAST_AUTO_DISMISS_MS } from "../../shared/components/toast.js";
-import { saveReservationEdit } from "../school-reservation-edit/school-reservation-edit-service.js";
+import { getReservedDatesForEdit, saveReservationEdit } from "../school-reservation-edit/school-reservation-edit-service.js";
+import { createReservationDatePicker } from "../school-reservation-edit/school-reservation-edit-datepicker.js";
 import { getReservationTicketOptions, NO_RESERVATION_TICKET_CHANGE_MESSAGE, saveReservationMemo } from "./school-reservation-detail-service.js";
 import { openReservationTicketEdit } from "./school-reservation-ticket-edit.js";
 
@@ -32,21 +33,28 @@ export function createWebReservationDetail(reservation) {
     field("status").textContent = status;
     field("status").dataset.state = status === "이용 완료" ? "completed" : "idle";
     field("ticketName").textContent = current.isOverbooked ? "선택 안함" : current.ticketName || ticket?.ticketName || "-";
-    field("reservationDate").textContent = formatReservationDate(current.date);
+    field("reservationDate").value = formatReservationDate(current.date);
     field("ticketRound").textContent = getTicketUsageRound(current, ticket, getSchoolHomeReservations());
   };
   updateDate();
   const memo = field("reservationMemo");
   memo.value = reservation.memo || "";
   memo.disabled = reservation.status === "취소";
+  let memoBeforeFocus = memo.value;
+  memo.addEventListener("focus", () => { memoBeforeFocus = memo.value; });
   memo.addEventListener("input", () => saveReservationMemo(reservation.id, memo.value));
+  memo.addEventListener("blur", () => {
+    const current = getSchoolHomeReservations().find((item) => item.id === reservation.id);
+    if (memo.value !== memoBeforeFocus && current?.memo === memo.value) showSavedToast(page, "수정되었습니다");
+    memoBeforeFocus = memo.value;
+  });
   const cancelButton = page.querySelector('[data-action="cancelReservation"]');
   cancelButton.disabled = reservation.status === "취소";
   cancelButton.addEventListener("click", () => {
     document.body.append(createSchoolReservationCancelAlert({
       onConfirm: () => {
         const current = getSchoolHomeReservations().find((item) => item.id === reservation.id);
-        const result = cancelSchoolReservation(current, { remove: true });
+        const result = cancelSchoolReservation(current);
         if (result.reservation) window.location.href = "./index.html?toast=reservationCancelled";
       },
     }));
@@ -54,12 +62,18 @@ export function createWebReservationDetail(reservation) {
   const editButton = page.querySelector('[data-action="editReservationDate"]');
   editButton.disabled = reservation.status === "취소";
   editButton.addEventListener("click", () => {
+    if (editButton.getAttribute("aria-expanded") === "true") return;
     const current = getSchoolHomeReservations().find((item) => item.id === reservation.id);
     if (!current) { window.location.replace("./index.html"); return; }
     openDateEdit(page, current, editButton, () => {
       updateDate();
       showSavedToast(page);
     });
+  });
+  editButton.addEventListener("keydown", (event) => {
+    if (!["Enter", " ", "ArrowDown"].includes(event.key)) return;
+    event.preventDefault();
+    editButton.click();
   });
   const ticketEditButton = page.querySelector('[data-action="editReservationTicket"]');
   ticketEditButton.disabled = reservation.status === "취소";
@@ -73,7 +87,7 @@ export function createWebReservationDetail(reservation) {
     openReservationTicketEdit(page, current, ticketEditButton, () => {
       updateDate();
       showSavedToast(page, "이용권을 변경했습니다");
-    }, () => showSavedToast(page, NO_RESERVATION_TICKET_CHANGE_MESSAGE));
+    });
   });
   return page;
 }
@@ -86,30 +100,37 @@ function showSavedToast(page, message = "수정되었습니다.") {
 }
 
 function openDateEdit(page, reservation, trigger, onSave) {
-  const overlay = document.querySelector('[data-template="reservationDateEdit"]').content.firstElementChild.cloneNode(true);
-  const form = overlay.querySelector("form");
-  const date = overlay.querySelector('[data-field="reservationDate"]');
-  const saveButton = overlay.querySelector('[data-action="saveReservationDate"]');
-  const error = overlay.querySelector('[data-field="dateError"]');
-  date.value = reservation.date;
-  const close = () => overlay.remove();
-  prepareModalOverlay(overlay, { onEscape: close, returnFocusTo: trigger });
-  date.addEventListener("input", () => {
-    saveButton.disabled = !date.validity.valid || date.value === reservation.date;
-    error.textContent = "";
+  const showFailure = () => {
+    const alert = createConfirmAlert({
+      title: "예약 실패",
+      message: "예약 또는 이용권에 변동이 있습니다.\n다시 시도해 주세요.",
+      area: "reservationDateConflictAlert",
+      modal: "reservationDateConflictAlert",
+      onConfirm: () => alert.remove(),
+    });
+    document.body.append(alert);
+  };
+  const picker = createReservationDatePicker({
+    selectedDate: reservation.date,
+    presentation: "popover",
+    trigger,
+    getDisabledDates: () => getReservedDatesForEdit(reservation, getSchoolHomeReservations()),
+    onUnavailable: showFailure,
+    onSelect: (date) => {
+      const current = getSchoolHomeReservations().find((item) => item.id === reservation.id);
+      if (!current) { window.location.replace("./index.html"); return; }
+      if (date === current.date) return;
+      const result = saveReservationEdit(current.id, { date, ticketHistoryId: current.ticketHistoryId });
+      if (result.message) { showFailure(); return false; }
+      if (!result.reservation) { window.location.replace("./index.html"); return; }
+      onSave();
+    },
+    onClose: () => {
+      trigger.setAttribute("aria-expanded", "false");
+      trigger.focus();
+    },
   });
-  form.addEventListener("submit", (event) => {
-    event.preventDefault();
-    if (saveButton.disabled || !form.reportValidity()) return;
-    const current = getSchoolHomeReservations().find((item) => item.id === reservation.id);
-    if (!current) { window.location.replace("./index.html"); return; }
-    const result = saveReservationEdit(current.id, { date: date.value, ticketHistoryId: current.ticketHistoryId });
-    if (result.message) { error.textContent = result.message; return; }
-    if (!result.reservation) { window.location.replace("./index.html"); return; }
-    close();
-    onSave();
-  });
-  overlay.querySelector('[data-action="closeDateEdit"]').addEventListener("click", close);
-  page.append(overlay);
-  date.focus();
+  trigger.setAttribute("aria-expanded", "true");
+  page.querySelector('[data-area="reservationDateControl"]').append(picker);
+  picker.querySelector('[data-action="previousMonth"]').focus();
 }

@@ -5,7 +5,7 @@ import { createSchoolReservationTicketSheet } from "../../shared/components/scho
 import { createSchoolReservationCancelAlert } from "../../shared/components/school-reservation-cancel-alert.js";
 import { createAlertDialog, createConfirmAlert } from "../../shared/components/alert.js";
 import { cancelSchoolReservation } from "../../shared/services/school-reservation-cancellation-service.js";
-import { getTicketUsageRound, isReservationTicketAvailable } from "../../shared/services/school-reservation-ticket-service.js";
+import { getTicketUsageRound, isReservationTicketAvailable, getTicketValidityLabel } from "../../shared/services/school-reservation-ticket-service.js";
 import { getReservationTicketOptions, NO_RESERVATION_TICKET_CHANGE_MESSAGE } from "../school-reservation-detail/school-reservation-detail-service.js";
 import { createElement } from "../../shared/utils/dom.js";
 import { getReservedDatesForEdit, getTicketChangePreview, getTicketReservableCount, saveReservationEdit } from "./school-reservation-edit-service.js";
@@ -28,9 +28,9 @@ export function renderSchoolReservationEdit(page, reservationId) {
   page.querySelector('[data-action="closeReservationEdit"]').addEventListener("click", () => { window.location.href = detailUrl; });
   page.querySelector('[data-action="cancelReservation"]').addEventListener("click", () => {
     document.body.append(createSchoolReservationCancelAlert({
-      message: "예약을 삭제하시겠습니까?\n삭제된 예약은 복구할 수 없습니다.",
+      message: "예약을 취소하시겠습니까?\n취소 후에는 변경이 불가능합니다.",
       onConfirm: () => {
-        const result = cancelSchoolReservation(reservation, { remove: true });
+        const result = cancelSchoolReservation(reservation);
         if (result.reservation) window.location.href = "./index.html?toast=reservationCancelled";
       },
     }));
@@ -45,6 +45,7 @@ export function renderSchoolReservationEdit(page, reservationId) {
   dateButton.addEventListener("click", () => {
     const picker = createReservationDatePicker({
       selectedDate: draft.date,
+      originalDate: reservation.date,
       getDisabledDates: () => getReservedDatesForEdit(reservation, getSchoolHomeReservations()),
       onSelect: (date) => {
         draft.date = date;
@@ -71,8 +72,10 @@ export function renderSchoolReservationEdit(page, reservationId) {
   const ticketRound = page.querySelector('[data-field="reservationTicketRound"]');
   const updateTicket = () => {
     ticketLabel.textContent = draft.isOverbooked ? "선택 안함" : draft.ticketName || "-";
-    const ticket = pet?.ticketHistories?.find((item) => item.id === draft.ticketHistoryId);
-    ticketRound.textContent = getTicketUsageRound(draft, ticket, getSchoolHomeReservations());
+    const currentPet = getStoredMembers().find((item) => item.id === draft.memberId)?.pets?.find((item) => item.id === draft.petId);
+    const ticket = currentPet?.ticketHistories?.find((item) => item.id === draft.ticketHistoryId);
+    ticketRound.textContent = getTicketUsageRound(draft, ticket, getSchoolHomeReservations())
+      .replace(/^(\d+)\/(\d+)회차$/, "$1회차 / $2회차");
     updateSaveButton();
   };
   updateTicket();
@@ -90,7 +93,10 @@ export function renderSchoolReservationEdit(page, reservationId) {
     const sheet = createSchoolReservationTicketSheet({
       tickets: [options.currentTicket, ...options.availableTickets].filter(Boolean),
       selectedId: draft.ticketHistoryId,
-      getLabel: (ticket) => `${ticket.ticketName || "이용권"} · ${getTicketReservableCount(ticket)}회 예약 가능`,
+      getLabel: (ticket) => ticket.ticketName || "이용권",
+      getValidityLabel: (ticket) => getTicketValidityLabel(ticket, getSchoolHomeReservations(), {
+        memberId: reservation.memberId, petId: reservation.petId, ticketHistories: tickets,
+      }),
       isDisabled: (ticket) => !isReservationTicketAvailable(ticket, getSchoolHomeReservations(), {
         memberId: reservation.memberId, petId: reservation.petId, ticketHistories: tickets,
       }),
@@ -102,22 +108,25 @@ export function renderSchoolReservationEdit(page, reservationId) {
         const content = createElement("div", { className: "ticket-change-summary" });
         const count = createElement("p", { className: "ticket-change-summary__count" });
         count.append(
-          `예약 가능 횟수 ${change.before}회 → `,
+          createElement("strong", {
+            className: "ticket-change-summary__before",
+            textContent: `${change.before}회`,
+          }),
+          " → ",
           createElement("strong", {
             className: "ticket-change-summary__after",
             textContent: `${change.after}회`,
-            dataset: { state: change.after <= 2 ? "warning" : "normal" },
           }),
         );
         content.append(
-          createElement("p", { className: "alert-dialog-message", textContent: ticket.ticketName }),
+          createElement("p", { className: "alert-dialog-message", textContent: `${ticket.ticketName}의\n이용권 횟수가 변경됩니다.` }),
           count,
         );
         const alert = createAlertDialog({
-          title: "이용권 변경",
+          title: "이용권 횟수 변경",
           contentNode: content,
           actions: [
-            { label: "취소", variant: "secondary", action: "cancelTicketChange", onClick: () => { alert.remove(); trigger.focus(); } },
+            { label: "닫기", variant: "secondary", action: "cancelTicketChange", onClick: () => { alert.remove(); trigger.focus(); } },
             { label: "변경", action: "confirmTicketChange", onClick: () => {
               Object.assign(draft, { ticketHistoryId: ticket.id, ticketId: ticket.ticketId || ticket.id, ticketName: ticket.ticketName, isOverbooked: false });
               updateTicket();
@@ -133,5 +142,4 @@ export function renderSchoolReservationEdit(page, reservationId) {
     sheet.querySelector('[data-action="closeTicketSheet"]').focus();
   };
   page.querySelector('[data-action="editReservationTicket"]').addEventListener("click", openTicketSheet);
-  page.querySelector('[data-action="selectReservationTicket"]').addEventListener("click", openTicketSheet);
 }

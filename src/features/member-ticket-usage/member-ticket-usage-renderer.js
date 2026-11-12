@@ -3,6 +3,7 @@ import { createAppTicketDetailScreen } from "../member-detail/member-detail-rend
 export function renderMemberTicketUsage(rootElement, state) {
   rootElement.innerHTML = "";
   rootElement.append(createAppTicketDetailScreen(state, {
+    layout: "stacked",
     onBack: () => {
       window.location.href = createMemberDetailUrl(state);
     },

@@ -13,7 +13,6 @@
       <header class="school-reservation-detail-header school-reservation-edit-header">
         <button class="school-reservation-detail-back school-reservation-detail-close" type="button" data-action="closeReservationEdit" aria-label="예약 수정 닫기">×</button>
         <h1 class="school-reservation-detail-title school-reservation-edit-title">유치원 예약 수정</h1>
-        <button class="school-reservation-detail-cancel" type="button" data-action="cancelReservation">예약 취소</button>
       </header>
       <div class="school-reservation-detail-content">
         <div data-area="reservationInfo"></div>
@@ -22,7 +21,7 @@
           <textarea class="field__control reservation-detail-memo" data-field="reservationMemo" aria-label="메모" placeholder="성격, 알러지 등 필요한 내용 입력 (최대 500자)"></textarea>
         </section>
         <section class="school-reservation-detail-section school-reservation-detail-date-section">
-          <h2>예약 날짜</h2>
+          <h2>등원 날짜</h2>
           <button class="field__control school-reservation-edit-control" type="button" data-action="editReservationDate" aria-haspopup="dialog" aria-label="예약 날짜 수정">
             <span data-field="reservationDateLabel"></span>
           </button>
@@ -30,15 +29,16 @@
         <section class="school-reservation-detail-section school-reservation-detail-ticket-section">
           <div class="school-reservation-detail-section-heading">
             <h2>이용권</h2>
-            <button class="button button--text-primary" type="button" data-action="editReservationTicket">수정</button>
+            <button class="button button--text-primary" type="button" data-action="editReservationTicket">변경</button>
           </div>
-          <button class="field__control school-reservation-edit-control school-reservation-edit-control--stacked" type="button" data-action="selectReservationTicket" aria-label="이용권 수정">
+          <div class="field__control school-reservation-edit-control school-reservation-edit-control--stacked">
             <span class="school-reservation-detail-ticket-name" data-field="reservationTicketName"></span>
             <span class="school-reservation-detail-ticket-round" data-field="reservationTicketRound"></span>
-          </button>
+          </div>
         </section>
       </div>
-      <footer class="school-reservation-detail-actions">
+      <footer class="school-reservation-detail-actions modal-footer-actions">
+        <button class="button button--danger-soft" type="button" data-action="cancelReservation">예약 취소</button>
         <button class="button button--primary school-reservation-detail-save-button" type="button" data-action="saveReservationEdit" disabled>수정</button>
       </footer>
     </main>
@@ -47,7 +47,7 @@
         <div class="alert-dialog" role="dialog" aria-modal="true" aria-label="예약 날짜 선택">
           <div class="alert-dialog-content" data-area="datePickerContent">
             <div data-area="datePickerHeader">
-              <strong class="alert-dialog-title">예약 날짜 선택</strong>
+              <strong class="alert-dialog-title">등원 날짜 변경</strong>
             </div>
             <div class="reservation-datepicker__controls">
               <button class="button button--month" type="button" data-action="previousMonth" aria-label="이전 달">‹</button>
@@ -61,6 +61,7 @@
           </div>
           <div class="alert-dialog-actions" data-area="datePickerActions">
             <button class="button button--secondary alert-dialog__button" type="button" data-action="closeDatePicker">닫기</button>
+            <button class="button button--primary alert-dialog__button" type="button" data-action="confirmReservationDate" disabled hidden>변경</button>
           </div>
         </div>
       </section>

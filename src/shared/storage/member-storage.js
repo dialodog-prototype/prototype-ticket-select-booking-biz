@@ -320,6 +320,11 @@ export function updateTicketHistory({ memberId, petId, ticketHistoryId, reservab
             return {
               ...ticket,
               reservableCount: nextReservableCount,
+              usageTotalCount: Math.max(
+                Number(ticket.usageTotalCount ?? ticket.totalCount ?? ticket.quantity) + nextReservableCount
+                  - (Number(ticket.reservableCount ?? ticket.remainingCount) || 0),
+                0,
+              ),
               expiresAt: expiresAt || "",
               depletedAt: nextReservableCount > 0 ? "" : ticket.depletedAt || new Date().toISOString(),
             };
@@ -404,7 +409,7 @@ export function processSchoolTicketAttendance(reservations, today = new Date()) 
             ticketHistories: (pet.ticketHistories || []).map((ticket) => {
               if (ticket.id !== reservation.ticketHistoryId) return ticket;
               didUpdate = true;
-              const remainingCount = Math.max((Number(ticket.remainingCount) || 0) - 1, 0);
+              const remainingCount = Math.max((Number(ticket.remainingCount) || 0) - (reservation.remainingCountAlreadyDeducted ? 0 : 1), 0);
               return {
                 ...ticket,
                 reservedCount: (Number(ticket.reservedCount) || 0) + 1,
@@ -450,7 +455,7 @@ export function issueTicketToMemberPet({ memberId, petId, ticket, quantity = 1, 
       ticketId: ticket.id,
       type: ticket.type || "school",
       pickdropType: ticket.pickdropType ?? null,
-      status: ticketDeduction > 0 ? "이용 중" : "사용 전",
+      status: ticketDeduction > 0 ? "사용 중" : "사용 전",
       ticketName: ticket.name || "이용권",
       remainingCount: ticketQuantity - ticketDeduction,
       reservableCount: ticketQuantity - ticketDeduction,
@@ -801,6 +806,7 @@ function normalizeTicketHistories(ticketHistories) {
         reservableCount: normalizeCount(ticketHistory?.reservableCount ?? remainingCount),
         reservedCount: normalizeCount(ticketHistory?.reservedCount),
         totalCount: normalizeCount(ticketHistory?.totalCount),
+        usageTotalCount: normalizeCount(ticketHistory?.usageTotalCount ?? ticketHistory?.totalCount ?? ticketHistory?.quantity ?? catalogTicket?.quantity),
         quantity: normalizeCount(ticketHistory?.quantity || catalogTicket?.quantity),
         validity: normalizeCount(ticketHistory?.validity || catalogTicket?.validity),
         unit: ticketHistory?.unit || catalogTicket?.unit || "",

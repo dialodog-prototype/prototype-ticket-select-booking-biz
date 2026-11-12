@@ -373,7 +373,7 @@ function createTicketIssueModal(memberHomeState) {
         ));
         overbookedReservations.slice(reservationOffset, reservationOffset + rowDeduction).forEach((reservation, index) => {
           const issuedTicket = issuedTicketQueue[index];
-          if (issuedTicket) updateSchoolHomeReservationTicketHistory(reservation.id, issuedTicket);
+          if (issuedTicket) updateSchoolHomeReservationTicketHistory(reservation.id, issuedTicket, { remainingCountAlreadyDeducted: true });
         });
       }
       reservationOffset += rowDeduction;

@@ -16,7 +16,7 @@
 }
 
 .school-registration-modal {
-  width: min(920px, 100%);
+  width: min(684px, 100%);
   max-height: calc(100vh - 48px);
   display: flex;
   flex-direction: column;
@@ -26,7 +26,7 @@
 }
 
 .school-registration-modal-header {
-  min-height: 72px;
+  min-height: 64px;
   position: relative;
   display: flex;
   align-items: center;
@@ -61,11 +61,11 @@
 .school-registration-field--horizontal {
   display: flex;
   align-items: flex-start;
-  gap: 20px;
+  gap: 16px;
 }
 
 .school-registration-field--horizontal > h3 {
-  width: 116px;
+  width: 57px;
   flex: 0 0 auto;
   margin: 12px 0 0;
 }
@@ -93,12 +93,17 @@
   min-width: 0;
 }
 
+.school-registration-memo {
+  flex: 1;
+  min-width: 0;
+  min-height: 112px;
+  height: auto;
+  padding: var(--space-3) var(--space-4);
+  resize: vertical;
+}
+
 .school-registration-member-list {
-  position: absolute;
-  z-index: 2;
-  top: calc(100% + 4px);
-  left: 0;
-  right: 0;
+  margin-top: 4px;
   max-height: 240px;
   overflow-y: auto;
   border: 1px solid var(--color-border);
@@ -110,6 +115,18 @@
 
 .school-registration-member-search-wrap:focus-within .school-registration-member-list {
   display: block;
+}
+
+.school-registration-member-notice {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  margin: var(--space-2) 0 0;
+  border-radius: var(--radius-4);
+  padding: var(--space-3) var(--space-4);
+  background: #ffebef;
+  text-align: center;
 }
 
 .school-registration-member-option {
@@ -150,14 +167,83 @@
   font-weight: 400;
 }
 
-.school-registration-ticket-list {
-  display: flex;
-  flex-wrap: nowrap;
-  align-items: flex-start;
-  height: 90px;
+.school-registration-modal > .school-registration-field {
+  padding: 16px 20px 16px 28px;
+}
+
+.school-registration-modal > .school-registration-member-field {
+  border-bottom: 0;
+}
+
+.school-registration-modal[data-state="initial"] {
+  padding-bottom: 20px;
+}
+
+.school-registration-modal[data-state="initial"] > .school-registration-member-field {
+  align-items: center;
+}
+
+.school-registration-modal[data-state="initial"] > .school-registration-member-field > h3 {
+  margin-top: 0;
+}
+
+.school-registration-modal[data-state="initial"] .school-registration-member-search {
+  height: 42px;
+  padding-left: 43px;
+  background-image: url("../../assets/searchIcon.svg");
+  background-repeat: no-repeat;
+  background-position: 15px center;
+  background-size: 20px 20px;
+}
+
+.school-registration-modal > .school-registration-memo-field {
+  flex-direction: column;
   gap: 8px;
-  overflow-x: auto;
-  overflow-y: hidden;
+  padding: 0 20px 0 101px;
+}
+
+.school-registration-modal > .school-registration-memo-field > h3 {
+  width: auto;
+  margin: 0;
+}
+
+.school-registration-modal .school-registration-memo {
+  flex: none;
+  height: 80px;
+  min-height: 80px;
+}
+
+.school-registration-modal > .school-registration-ticket-field {
+  padding-bottom: 0;
+}
+
+.school-registration-modal > .school-registration-date-field {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.school-registration-modal .school-registration-date-header {
+  padding: 16px 0;
+}
+
+.school-registration-modal .school-registration-calendar-body {
+  display: flex;
+  flex-direction: column;
+  height: 264px;
+}
+
+.school-registration-modal .school-registration-calendar-row {
+  flex: 1;
+  min-height: 0;
+}
+
+.school-registration-modal .school-registration-date {
+  min-height: 0;
+}
+
+.school-registration-modal > .school-registration-footer {
+  gap: 36px;
+  padding: 16px 28px 20px;
 }
 
 .school-registration-pet-select {
@@ -247,7 +333,6 @@
   bottom: 8px;
   color: var(--color-warning);
   font-size: 12px;
-  font-weight: 700;
 }
 
 .school-registration-date-header {
@@ -352,7 +437,8 @@
   background: var(--color-warning);
 }
 
-.school-registration-over-limit-submit-button {
+.school-registration-over-limit-submit-button,
+.school-registration-over-limit-submit-button:disabled {
   border-color: var(--color-warning);
   background: var(--color-warning);
 }
@@ -389,6 +475,25 @@
 .school-registration-pickdrop-button:disabled {
   color: var(--color-text-muted);
   cursor: not-allowed;
+}
+
+.school-registration-modal .school-registration-actions {
+  width: min(428px, 100%);
+  gap: 8px;
+}
+
+.school-registration-modal .school-registration-continue-button {
+  flex: 0 1 120px;
+  height: 42px;
+}
+
+.school-registration-modal .school-registration-submit-button {
+  flex: 1 1 300px;
+  height: 42px;
+}
+
+.school-registration-modal .school-registration-submit-button:only-child {
+  flex: 0 1 300px;
 }
 
 .pickdrop-registration-modal-overlay {
@@ -1140,15 +1245,6 @@
   gap: 16px;
 }
 
-.school-reservation-hide-cancelled {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--color-text-muted);
-  font-size: 14px;
-  white-space: nowrap;
-}
-
 .school-home-app-shell {
   min-height: 100vh;
   background: #fafafb;
@@ -1497,8 +1593,9 @@
     padding: 0;
   }
 
-  .school-app-reservation-register-body .school-registration-member-field {
-    margin-bottom: 40px;
+  .school-app-reservation-register-body .school-registration-member-field,
+  .school-app-reservation-register-body .school-registration-memo-field {
+    margin-bottom: 16px;
   }
 
   .school-app-reservation-register-body .school-registration-member-row {
@@ -1643,7 +1740,7 @@
 
   .school-app-reservation-registration-footer .school-registration-count span {
     color: var(--color-text);
-    font-size: clamp(28px, 4.4vw, 38px);
+    font-size: 20px;
     line-height: 1.1;
     white-space: nowrap;
   }
@@ -1660,17 +1757,17 @@
   .school-app-reservation-registration-footer .school-registration-submit-button {
     width: 100%;
     min-width: 0;
-    height: clamp(72px, 13.5vw, 104px);
+    height: 52px;
     border-radius: 16px;
-    font-size: clamp(22px, 3.8vw, 32px);
+    font-size: 16px;
   }
 
   .school-app-reservation-registration-footer .school-registration-continue-button {
     width: 100%;
     min-width: 0;
-    height: clamp(72px, 13.5vw, 104px);
+    height: 52px;
     border-radius: 16px;
-    font-size: clamp(18px, 3.2vw, 26px);
+    font-size: 16px;
   }
 
   .school-registration-modal-overlay {

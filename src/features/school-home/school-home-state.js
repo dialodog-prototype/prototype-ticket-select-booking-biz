@@ -17,7 +17,6 @@ export function createSchoolHomeState() {
     currentMonth: todayDateKey.slice(0, 7),
     selectedDate: todayDateKey,
     selectedReservationIds: [],
-    hideCancelledReservations: true,
     toastMessage,
     toastQueue: [],
     searchTerm: "",

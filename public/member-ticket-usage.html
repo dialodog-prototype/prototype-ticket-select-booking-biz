@@ -10,6 +10,22 @@
   </head>
   <body data-page="app-ticket-usage">
     <div id="app" data-screen="memberTicketUsage"></div>
+    <template data-template="memberTicketUsageContent">
+      <main class="member-ticket-detail-screen-body" data-state="stacked">
+        <section class="member-ticket-detail-info-section" data-area="ticketSummary"></section>
+        <section class="member-ticket-detail-section" data-area="ticketStatus"></section>
+        <section class="member-ticket-detail-section" data-area="ticketUsage"></section>
+      </main>
+    </template>
+    <template data-template="memberTicketUsageCard">
+      <article class="member-ticket-usage-card">
+        <strong data-field="service"></strong>
+        <dl class="member-ticket-usage-card-facts">
+          <dt>이용 날짜</dt><dd data-field="visitDate"></dd>
+          <dt>이용 회차</dt><dd data-field="ticketUsageRound"></dd>
+        </dl>
+      </article>
+    </template>
     <script type="module" src="../src/platforms/member-ticket-usage.js"></script>
     <noscript>
       <p>JavaScript를 켜고 다시 시도해 주세요.</p>

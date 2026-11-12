@@ -58,7 +58,7 @@ export function updateSchoolHomeReservationStatus(reservationId, status = "ì·¨ì†
   return { ...nextReservation };
 }
 
-export function updateSchoolHomeReservationTicketHistory(reservationId, ticketHistory) {
+export function updateSchoolHomeReservationTicketHistory(reservationId, ticketHistory, { remainingCountAlreadyDeducted = false } = {}) {
   const reservation = getSchoolHomeReservations().find((item) => item.id === reservationId);
   if (!reservation || !ticketHistory?.id) return null;
 
@@ -68,6 +68,7 @@ export function updateSchoolHomeReservationTicketHistory(reservationId, ticketHi
     ticketHistoryId: ticketHistory.id,
     ticketId: ticketHistory.ticketId || ticketHistory.id,
     ticketName: ticketHistory.ticketName || reservation.ticketName || "",
+    remainingCountAlreadyDeducted,
   });
 }
 
@@ -81,6 +82,7 @@ export function clearSchoolHomeReservationTicketHistory(reservationId) {
     ticketHistoryId: "",
     ticketId: "",
     ticketName: "",
+    remainingCountAlreadyDeducted: false,
   });
 }
 

@@ -19,6 +19,40 @@ export function getPetReservableCount(pet, reservations = [], memberId = "") {
     .reduce((total, ticket) => total + getTicketReservableCount(ticket), 0);
 }
 
+export function getReservationRegistrationSnapshot(member, reservations = []) {
+  const byId = (left, right) => String(left.id).localeCompare(String(right.id));
+  const snapshot = {
+    memberId: member?.id || "",
+    pets: (member?.pets || []).map((pet) => ({
+      id: pet.id,
+      tickets: [...(pet.ticketHistories || [])].sort(byId),
+      availableTicketIds: getAvailableReservationTickets(pet, reservations, member.id)
+        .map((ticket) => ticket.id).sort(),
+    })).sort(byId),
+    reservations: reservations.filter((reservation) => reservation.memberId === member?.id).sort(byId),
+  };
+  return JSON.stringify(snapshot, (key, value) => {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return value;
+    return Object.fromEntries(Object.entries(value).sort(([left], [right]) => left.localeCompare(right)));
+  });
+}
+
+export function reconcileReservationRegistrationSelection(draft, member, reservations, capacityClosedDates = []) {
+  const pet = getReservationPet(member, draft.petId);
+  const tickets = getAvailableReservationTickets(pet, reservations, draft.memberId);
+  const selectedTicket = tickets.find((ticket) => ticket.id === draft.ticketId);
+  const reservedDates = new Set(reservations.filter((reservation) => {
+    return reservation.memberId === draft.memberId && reservation.petId === draft.petId && reservation.status !== "취소";
+  }).map((reservation) => reservation.date));
+  const selectedDates = draft.selectedDates.filter((date) => !reservedDates.has(date) && !capacityClosedDates.includes(date));
+  return {
+    ticketId: selectedTicket?.id || "",
+    selectedDates: selectedTicket && tickets.length > 1
+      ? selectedDates.slice(0, getTicketReservableCount(selectedTicket))
+      : selectedDates,
+  };
+}
+
 export function shouldRequireTicketChange({ selectedDateCount = 0, selectedTicket, availableTickets = [] } = {}) {
   const ticketCapacity = Number(selectedTicket?.reservableCount ?? selectedTicket?.remainingCount) || 0;
   return availableTickets.length > 1 && selectedDateCount >= ticketCapacity;
@@ -41,7 +75,7 @@ export function getRegistrationValidation({ member, pet, ticketSelected = true, 
   return { isValid: true, message: "" };
 }
 
-export function createSchoolReservation({ member, pet, date, ticket, isOverbooked = false }) {
+export function createSchoolReservation({ member, pet, date, ticket, memo, isOverbooked = false }) {
   return {
     id: `school-reservation-${Date.now()}-${date}`,
     date,
@@ -61,7 +95,7 @@ export function createSchoolReservation({ member, pet, date, ticket, isOverbooke
     weight: pet.weight || "",
     gender: pet.gender || "",
     neuteredStatus: pet.neuteredStatus || "",
-    memo: pet.memo || "",
+    memo: memo ?? pet.memo ?? "",
     totalReservableCount: getPetReservationLimit(pet),
     isOverbooked: Boolean(isOverbooked || !ticket?.id),
     ticketHistoryId: ticket?.id || "",

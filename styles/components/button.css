@@ -18,7 +18,6 @@
 
 .button--primary {
   min-width: 112px;
-  border-color: var(--color-primary);
   background: var(--color-primary);
   color: #ffffff;
 }
@@ -28,6 +27,12 @@
   border-color: var(--color-border);
   background: var(--color-surface);
   color: var(--color-primary);
+}
+
+.button--danger-soft {
+  background: #ffebef;
+  color: var(--color-warning);
+  font-weight: 700;
 }
 
 .button--text {
@@ -77,8 +82,8 @@
 }
 
 .button__icon {
-  width: 24px;
-  height: 24px;
+  width: 20x;
+  height: 20px;
   display: block;
   margin: auto;
 }

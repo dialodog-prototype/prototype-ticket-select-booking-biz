@@ -1,4 +1,3 @@
-import { cancelSchoolReservation } from "./school-reservation-cancellation-service.js";
 import {
   clearSchoolHomeReservationTicketHistory,
   getSchoolHomeReservations,
@@ -13,31 +12,34 @@ import {
 import { getTicketStatus } from "./ticket-status-service.js";
 import { compareTicketsByExpiry } from "./school-reservation-ticket-service.js";
 
-export function cancelTicketIssue({ memberId, petId, ticketHistoryId, cancelFutureReservations = false, today = new Date() } = {}) {
-  const todayKey = getDateKey(today);
-  const reservationsToCancel = cancelFutureReservations
-    ? getSchoolHomeReservations().filter((reservation) => {
-      return reservation.memberId === memberId
-        && reservation.petId === petId
-        && reservation.ticketHistoryId === ticketHistoryId
-        && reservation.status !== "취소"
-        && reservation.date >= todayKey;
-  })
-    : [];
-
-  reservationsToCancel.forEach((reservation) => cancelSchoolReservation(reservation));
-  const reassignmentResult = reassignDisconnectedReservations({ memberId, petId, ticketHistoryId, today });
+export function cancelTicketIssue({ memberId, petId, ticketHistoryId, today = new Date(), excludedTicketHistoryIds = [] } = {}) {
+  const reassignmentResult = reassignDisconnectedReservations({ memberId, petId, ticketHistoryId, today, excludedTicketHistoryIds });
   const ticketResult = removeTicketHistory({ memberId, petId, ticketHistoryId });
   return {
     members: ticketResult.members,
     reservations: getSchoolHomeReservations(),
-    cancelledReservationIds: reservationsToCancel.map((reservation) => reservation.id),
     reassignedReservationIds: reassignmentResult.reassignedReservationIds,
     unassignedReservationIds: reassignmentResult.unassignedReservationIds,
   };
 }
 
-function reassignDisconnectedReservations({ memberId, petId, ticketHistoryId, today }) {
+export function cancelTicketIssues({ memberId, petId, ticketHistoryIds = [], today = new Date() } = {}) {
+  const ids = [...new Set(ticketHistoryIds)].filter(Boolean);
+  let members = getStoredMembers();
+  const reassignedReservationIds = [];
+  const unassignedReservationIds = [];
+  ids.forEach((ticketHistoryId) => {
+    const result = cancelTicketIssue({
+      memberId, petId, ticketHistoryId, today, excludedTicketHistoryIds: ids,
+    });
+    members = result.members;
+    reassignedReservationIds.push(...result.reassignedReservationIds);
+    unassignedReservationIds.push(...result.unassignedReservationIds);
+  });
+  return { members, reservations: getSchoolHomeReservations(), reassignedReservationIds, unassignedReservationIds };
+}
+
+function reassignDisconnectedReservations({ memberId, petId, ticketHistoryId, today, excludedTicketHistoryIds = [] }) {
   const todayKey = getDateKey(today);
   const reservations = getSchoolHomeReservations();
   const member = getStoredMembers().find((item) => item.id === memberId);
@@ -54,6 +56,7 @@ function reassignDisconnectedReservations({ memberId, petId, ticketHistoryId, to
     .sort(compareReservations);
   const availableTickets = ticketHistories
     .filter((ticket) => ticket.id !== ticketHistoryId)
+    .filter((ticket) => !excludedTicketHistoryIds.includes(ticket.id))
     .filter((ticket) => isCompatibleTicket(ticket, cancelledTicket))
     .filter((ticket) => isAvailableTicket(ticket, reservations, { memberId, petId, ticketHistories }))
     .sort((left, right) => compareTicketsByExpiry(left, right, reservations, { memberId, petId, ticketHistories }));
@@ -95,7 +98,7 @@ function isCompatibleTicket(ticket, cancelledTicket) {
 
 function isAvailableTicket(ticket, reservations, context) {
   const status = getTicketStatus(ticket, reservations, context);
-  return getTicketReservableCount(ticket) > 0 && (status === "사용 전" || status === "이용 중");
+  return getTicketReservableCount(ticket) > 0 && (status === "사용 전" || status === "사용 중");
 }
 
 function compareReservations(left, right) {
