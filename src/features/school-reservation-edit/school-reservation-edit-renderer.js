@@ -72,7 +72,8 @@ export function renderSchoolReservationEdit(page, reservationId) {
   const ticketRound = page.querySelector('[data-field="reservationTicketRound"]');
   const updateTicket = () => {
     ticketLabel.textContent = draft.isOverbooked ? "선택 안함" : draft.ticketName || "-";
-    const ticket = pet?.ticketHistories?.find((item) => item.id === draft.ticketHistoryId);
+    const currentPet = getStoredMembers().find((item) => item.id === draft.memberId)?.pets?.find((item) => item.id === draft.petId);
+    const ticket = currentPet?.ticketHistories?.find((item) => item.id === draft.ticketHistoryId);
     ticketRound.textContent = getTicketUsageRound(draft, ticket, getSchoolHomeReservations())
       .replace(/^(\d+)\/(\d+)회차$/, "$1회차 / $2회차");
     updateSaveButton();

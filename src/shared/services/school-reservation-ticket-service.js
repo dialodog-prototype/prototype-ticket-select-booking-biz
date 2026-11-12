@@ -72,7 +72,7 @@ function getReservationTicketPriority(ticket, reservations, context) {
 }
 
 export function getTicketUsageRound(reservation, ticketHistory, reservations, { includeTotal = true } = {}) {
-  const totalCount = Math.max(Number(ticketHistory?.totalCount ?? ticketHistory?.quantity) || 0, 0);
+  const totalCount = Math.max(Number(ticketHistory?.usageTotalCount ?? ticketHistory?.totalCount ?? ticketHistory?.quantity) || 0, 0);
   if (!reservation?.ticketHistoryId || reservation?.isOverbooked || (includeTotal && totalCount <= 0)) return "-";
 
   const ticketReservations = (reservations || [])

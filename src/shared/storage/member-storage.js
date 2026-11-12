@@ -320,6 +320,11 @@ export function updateTicketHistory({ memberId, petId, ticketHistoryId, reservab
             return {
               ...ticket,
               reservableCount: nextReservableCount,
+              usageTotalCount: Math.max(
+                Number(ticket.usageTotalCount ?? ticket.totalCount ?? ticket.quantity) + nextReservableCount
+                  - (Number(ticket.reservableCount ?? ticket.remainingCount) || 0),
+                0,
+              ),
               expiresAt: expiresAt || "",
               depletedAt: nextReservableCount > 0 ? "" : ticket.depletedAt || new Date().toISOString(),
             };
@@ -801,6 +806,7 @@ function normalizeTicketHistories(ticketHistories) {
         reservableCount: normalizeCount(ticketHistory?.reservableCount ?? remainingCount),
         reservedCount: normalizeCount(ticketHistory?.reservedCount),
         totalCount: normalizeCount(ticketHistory?.totalCount),
+        usageTotalCount: normalizeCount(ticketHistory?.usageTotalCount ?? ticketHistory?.totalCount ?? ticketHistory?.quantity ?? catalogTicket?.quantity),
         quantity: normalizeCount(ticketHistory?.quantity || catalogTicket?.quantity),
         validity: normalizeCount(ticketHistory?.validity || catalogTicket?.validity),
         unit: ticketHistory?.unit || catalogTicket?.unit || "",
