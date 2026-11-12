@@ -78,32 +78,22 @@ function createDetailPage(reservation, onEdit, onCancel, toastMessage) {
   const content = createElement("div", { className: "school-reservation-detail-content" });
   content.append(createReservationInfo(reservation, member, pet));
   content.append(createReservationMemo(reservation, onEdit));
-  content.append(createReservationDate(reservation?.date));
-  content.append(createReservationTicket(reservation, pet));
+  content.append(createReservationUsage(reservation, pet));
   page.append(content);
   if (toastMessage) page.append(createToast(toastMessage));
   return page;
 }
 
-function createReservationDate(dateText) {
-  const section = createElement("section", { className: "school-reservation-detail-section school-reservation-detail-date-section" });
-  section.append(createElement("h2", { textContent: "예약 날짜" }));
-  section.append(createElement("div", { className: "school-reservation-detail-date", textContent: formatReservationDate(dateText) }));
-  return section;
-}
-
-function createReservationTicket(reservation, pet) {
-  const section = createElement("section", { className: "school-reservation-detail-section school-reservation-detail-ticket-section" });
+function createReservationUsage(reservation, pet) {
+  const section = document.querySelector('[data-template="appReservationUsage"]').content.firstElementChild.cloneNode(true);
   const ticketHistory = pet?.ticketHistories?.find((ticket) => ticket.id === reservation?.ticketHistoryId);
   const ticketName = reservation?.isOverbooked
     ? "선택 안함"
     : reservation?.ticketName || ticketHistory?.ticketName || "-";
-  section.append(createElement("h2", { textContent: "이용권" }));
-  const ticketUsageRound = getTicketUsageRound(reservation, ticketHistory, getSchoolHomeReservations());
-  const ticket = createElement("div", { className: "school-reservation-detail-ticket", dataset: { area: "reservationTicketDisplay" } });
-  ticket.append(createElement("div", { className: "school-reservation-detail-ticket-name", textContent: ticketName }));
-  ticket.append(createElement("div", { className: "school-reservation-detail-ticket-round", textContent: ticketUsageRound }));
-  section.append(ticket);
+  section.querySelector('[data-field="reservationDate"]').textContent = formatReservationDate(reservation?.date);
+  section.querySelector('[data-field="ticketName"]').textContent = ticketName;
+  section.querySelector('[data-field="ticketRound"]').textContent = getTicketUsageRound(reservation, ticketHistory, getSchoolHomeReservations())
+    .replace(/^(\d+)\/(\d+)회차$/, "$1회차 / $2회차");
   return section;
 }
 

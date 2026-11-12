@@ -1,0 +1,88 @@
+.reservation-datepicker__controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+}
+
+.reservation-datepicker__body {
+  display: grid;
+  gap: 10px;
+  text-align: center;
+}
+
+.reservation-datepicker__header {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) 56px;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.reservation-datepicker__week {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.reservation-datepicker__date {
+  min-height: 40px;
+  border: 0;
+  background: transparent;
+}
+
+.reservation-datepicker__date[data-state="selected"] {
+  background: var(--color-primary);
+  color: var(--color-surface);
+  font-weight: 700;
+}
+
+.reservation-datepicker__date[data-state="muted"],
+.reservation-datepicker__date:disabled {
+  color: var(--color-text-muted);
+}
+
+.reservation-datepicker__date:disabled {
+  background: var(--color-page);
+  cursor: not-allowed;
+}
+
+.reservation-datepicker--popover {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-3);
+  padding: 0 15px var(--space-4);
+  background: var(--color-surface);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+  text-align: center;
+}
+
+.reservation-datepicker--popover .reservation-datepicker__controls {
+  height: 60px;
+}
+
+.reservation-datepicker--popover .reservation-datepicker__week {
+  gap: var(--space-3);
+}
+
+.reservation-datepicker--popover .reservation-datepicker__weekdays {
+  height: 50px;
+  align-items: center;
+}
+
+.reservation-datepicker__dates {
+  display: grid;
+  gap: var(--space-2);
+  padding-top: var(--space-2);
+}
+
+.reservation-datepicker--popover .reservation-datepicker__date {
+  height: 32px;
+  min-height: 32px;
+  border-radius: 50%;
+}
+
+.reservation-datepicker--popover .reservation-datepicker__date[data-state="muted"] {
+  visibility: hidden;
+}
+
+.reservation-datepicker__actions {
+  margin-top: var(--space-4);
+}

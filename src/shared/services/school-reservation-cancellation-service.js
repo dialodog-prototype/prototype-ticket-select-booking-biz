@@ -1,16 +1,14 @@
-import { removeSchoolHomeReservation, updateSchoolHomeReservationStatus } from "../storage/school-home-storage.js";
+import { updateSchoolHomeReservationStatus } from "../storage/school-home-storage.js";
 import { getStoredMembers, updateTicketHistoryCounters } from "../storage/member-storage.js";
 
-export function cancelSchoolReservation(reservation, { remove = false } = {}) {
+export function cancelSchoolReservation(reservation) {
   if (!reservation || reservation.status === "취소") {
     return { reservation: reservation || null, members: null };
   }
 
-  // Persist a derived start date before removing its reservation evidence.
+  // Persist a derived start date before cancellation excludes its usage history.
   getStoredMembers();
-  const cancelledReservation = remove
-    ? removeSchoolHomeReservation(reservation.id)
-    : updateSchoolHomeReservationStatus(reservation.id, "취소");
+  const cancelledReservation = updateSchoolHomeReservationStatus(reservation.id, "취소");
   if (!cancelledReservation) {
     return { reservation: null, members: null };
   }

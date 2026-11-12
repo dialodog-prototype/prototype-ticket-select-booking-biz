@@ -1,4 +1,4 @@
-const TICKET_STATUS_USING = "이용 중";
+const TICKET_STATUS_USING = "사용 중";
 const TICKET_STATUS_READY = "사용 전";
 const TICKET_STATUS_DEPLETED = "횟수 소진";
 const TICKET_STATUS_EXPIRED = "만료";
@@ -172,7 +172,7 @@ function getLatestTicketReservation(reservations, { memberId, petId }) {
     .sort((left, right) => getReservationCreatedTime(right).localeCompare(getReservationCreatedTime(left)))[0] || null;
 }
 
-function getValidDays(ticket) {
+export function getValidDays(ticket) {
   const validity = Math.max(Number(ticket?.validity) || 0, 0);
   const unit = String(ticket?.unit || "").trim();
   if (unit === "주") return validity * 7;

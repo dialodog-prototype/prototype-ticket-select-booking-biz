@@ -3,8 +3,9 @@ import { getStoredMembers } from "../../shared/storage/member-storage.js";
 import { getDateKey, getTicketExpiryDate } from "../../shared/services/ticket-status-service.js";
 import { isReservationTicketAvailable } from "../../shared/services/school-reservation-ticket-service.js";
 import { saveReservationEdit } from "../school-reservation-edit/school-reservation-edit-service.js";
+import { getReservationRegistrationSnapshot } from "../school-home/school-home-reservation-service.js";
 
-export const NO_RESERVATION_TICKET_CHANGE_MESSAGE = "변경할 수 있는 이용권이 없습니다.\n이용권을 먼저 지급하세요.";
+export const NO_RESERVATION_TICKET_CHANGE_MESSAGE = "사용 가능한 이용권이 없습니다.";
 
 export function saveReservationMemo(reservationId, memo) {
   const reservation = getSchoolHomeReservations().find((item) => item.id === reservationId);
@@ -28,7 +29,20 @@ export function getReservationTicketOptions(reservation) {
   };
 }
 
-export function saveReservationTicketChange(reservationId, ticketHistoryId) {
+export function getReservationTicketChangeSnapshot(reservationId) {
+  const reservations = getSchoolHomeReservations();
+  const reservation = reservations.find((item) => item.id === reservationId);
+  const member = getStoredMembers().find((item) => item.id === reservation?.memberId);
+  return JSON.stringify({
+    reservationId: reservation?.id || null,
+    data: getReservationRegistrationSnapshot(member, reservations),
+  });
+}
+
+export function saveReservationTicketChange(reservationId, ticketHistoryId, { expectedSnapshot } = {}) {
+  if (expectedSnapshot && expectedSnapshot !== getReservationTicketChangeSnapshot(reservationId)) {
+    return { conflict: true };
+  }
   const reservation = getSchoolHomeReservations().find((item) => item.id === reservationId);
   if (!reservation || reservation.status === "취소") return { reservation: null };
   if (!getReservationTicketOptions(reservation).availableTickets.some((ticket) => ticket.id === ticketHistoryId)) {

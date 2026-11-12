@@ -204,26 +204,17 @@
 }
 
 .reservation-cell {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
   justify-self: center;
-  min-height: 28px;
-  border-radius: var(--radius-1);
-  padding: var(--space-1) var(--space-2);
-  background: var(--color-primary-soft);
   color: var(--color-primary);
   white-space: nowrap;
 }
 
 .reservation-cell.is-warning {
-  background: #ffebef;
   color: var(--color-warning);
   font-weight: 700;
 }
 
 .reservation-cell.is-error {
-  background: #ffebef;
   color: #ed6060;
   font-weight: 700;
 }
@@ -1155,7 +1146,7 @@
 }
 
 .data-table--ticket {
-  grid-template-columns: 80px repeat(4, minmax(0, 1fr)) 60px;
+  grid-template-columns: 40px 80px repeat(4, minmax(0, 1fr)) 60px;
   row-gap: 0;
   background: #ffffff;
 }
@@ -1474,26 +1465,15 @@ body[data-page="app-ticket-usage"] .member-ticket-detail-screen {
   display: flex;
   align-items: center;
   gap: 4px;
-  border-radius: 6px;
-  padding: 0 16px;
-  background: #ffebef;
   color: #ed6060;
   font-size: 14px;
 }
 
-.member-ticket-detail-notice img {
-  width: 20px;
-  height: 20px;
-  object-fit: contain;
-}
-
 .member-ticket-detail-notice.is-ready {
-  background: #e0ecff;
   color: #1e78f0;
 }
 
 .member-ticket-detail-notice.is-error {
-  background: #ffebef;
   color: #ed6060;
 }
 
@@ -1501,9 +1481,6 @@ body[data-page="app-ticket-usage"] .member-ticket-detail-screen {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  border: 1px solid #f1f1f2;
-  border-radius: 12px;
-  padding: 20px 16px;
 }
 
 .member-ticket-detail-summary strong {
@@ -2264,8 +2241,16 @@ body[data-page="app-ticket-usage"] .member-ticket-detail-screen {
 }
 
 .member-ticket-history-section h2 {
-  margin: 0 0 28px;
+  margin: 0;
   font-size: 24px;
+}
+
+.member-ticket-history-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: 28px;
 }
 
 .member-ticket-count-cell {
@@ -2373,7 +2358,7 @@ body[data-page="app-ticket-usage"] .member-ticket-detail-screen {
 }
 
 .ticket-detail-status.status-active { background: var(--color-primary); }
-.ticket-detail-status.status-ready { background: var(--color-primary); }
+.ticket-detail-status.status-ready { background: #00aa81; }
 .ticket-detail-status.status-danger { background: #ed6060; }
 
 .ticket-detail-facts {
@@ -2447,15 +2432,6 @@ body[data-page="app-ticket-usage"] .member-ticket-detail-screen {
   color: #999999;
 }
 
-.ticket-detail-modal-actions {
-  margin-top: 36px;
-}
-
-.ticket-detail-cancel-button {
-  background: #ed6060;
-  color: #ffffff;
-}
-
 .ticket-cancel-alert-overlay {
   position: fixed;
   z-index: 100;
@@ -2475,28 +2451,20 @@ body[data-page="app-ticket-usage"] .member-ticket-detail-screen {
 }
 
 .ticket-cancel-alert > p {
+  text-align: center;
   margin: 0 0 24px;
   color: #ed6060;
   white-space: pre-line;
 }
 
-.ticket-cancel-alert-option {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 16px;
-  border-radius: 8px;
-  background: #f6f6f6;
-}
-
-.ticket-cancel-alert-option input {
-  width: 18px;
-  height: 18px;
-  margin: 0;
-}
-
 .ticket-cancel-alert-actions {
+  display: grid;
+  grid-template-columns: 0.64fr 1fr;
   margin-top: 28px;
+}
+
+.ticket-cancel-alert-actions > .button {
+  width: 100%;
 }
 
 .pet-detail-optional-info-divider {
@@ -2603,11 +2571,6 @@ body[data-page="app-ticket-usage"] .member-ticket-detail-screen {
     grid-template-columns: 100px 1fr;
   }
 
-  .member-ticket-detail-screen .member-ticket-status-facts dd small {
-    display: block;
-    margin-top: 2px;
-  }
-
   .member-profile-flow {
     width: min(100vw, 430px);
     margin: 0 auto;
@@ -2675,4 +2638,48 @@ body[data-page="app-ticket-usage"] .member-ticket-detail-screen {
   .pet-detail-age-output {
     grid-column: 1 / -1;
   }
+}
+
+.member-ticket-detail-screen-body[data-state="stacked"] {
+  gap: 0;
+  padding: 0;
+}
+
+.member-ticket-detail-screen-body[data-state="stacked"] > .member-ticket-detail-info-section {
+  gap: 16px;
+  padding: 24px 16px;
+}
+
+.member-ticket-detail-section {
+  border-top: 8px solid var(--color-page-subtle);
+  padding: 20px;
+}
+
+.member-ticket-detail-section > .member-ticket-status-panel {
+  padding: 0;
+}
+
+.member-ticket-detail-section .member-ticket-status-facts {
+  grid-template-columns: 100px minmax(0, 1fr);
+  gap: 12px 16px;
+}
+
+.member-ticket-usage-card-facts {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 8px 12px;
+  margin: 16px 4px 0;
+  color: #919191;
+  font-size: 16px;
+}
+
+.member-ticket-usage-card-facts dd {
+  min-width: 0;
+  margin: 0;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.member-ticket-status-start-date {
+  white-space: nowrap;
 }

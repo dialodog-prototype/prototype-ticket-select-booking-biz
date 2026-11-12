@@ -25,7 +25,7 @@ export function reconcileOverbookedReservations(members, reservations, processed
     const context = { memberId: reservation.memberId, petId: reservation.petId, ticketHistories };
     const ticket = ticketHistories
       .filter((item) => item.type === "school" && getTicketReservableCount(item) > 0)
-      .filter((item) => ["사용 전", "이용 중"].includes(getTicketStatus(item, nextReservations, context)))
+      .filter((item) => ["사용 전", "사용 중"].includes(getTicketStatus(item, nextReservations, context)))
       .sort((left, right) => compareTicketsByExpiry(left, right, nextReservations, context))[0];
     if (!ticket) return;
 

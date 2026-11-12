@@ -4,6 +4,23 @@
   color: #2f3033;
 }
 
+.reservation-detail-date-control {
+  position: relative;
+  width: min(328px, 100%);
+}
+
+.reservation-detail-date-control > .field__control {
+  cursor: pointer;
+}
+
+.reservation-detail-date-control > .reservation-datepicker {
+  position: absolute;
+  z-index: 10;
+  top: calc(100% + var(--space-2));
+  left: 0;
+  width: 100%;
+}
+
 .school-reservation-detail-header {
   height: 88px;
   display: grid;
@@ -187,12 +204,12 @@
   .school-reservation-detail-content {
     width: auto;
     flex: 1;
-    padding: 40px 20px 32px;
+    padding: 32px 20px 32px;
   }
 
   .school-reservation-detail-section h2 {
     margin-bottom: 12px;
-    font-size: 20px;
+    font-size: 18px;
   }
 
   .school-reservation-detail-pet {
@@ -201,8 +218,8 @@
   }
 
   .school-reservation-detail-pet-image {
-    width: 100px;
-    height: 100px;
+    width: 80px;
+    height: 80px;
     margin-left: 0;
   }
 
@@ -241,6 +258,25 @@
 
   .school-reservation-detail-ticket-section {
     margin-top: 28px;
+  }
+
+  .school-reservation-detail-usage-section {
+    margin-top: 32px;
+  }
+
+  .school-reservation-detail-usage-list {
+    display: grid;
+    grid-template-columns: 88px minmax(0, 1fr);
+    gap: 12px 16px;
+    margin: 0;
+    padding-left: 8px;
+    font-size: 16px;
+  }
+
+  .school-reservation-detail-usage-list dd {
+    min-width: 0;
+    margin: 0;
+    overflow-wrap: anywhere;
   }
 
   .school-reservation-detail-memo-section {
@@ -337,6 +373,7 @@
 }
 
 .reservation-detail-web-content {
+  max-width: 622px;
   padding-bottom: 32px;
 }
 
@@ -365,25 +402,97 @@
 .reservation-detail-status {
   border-radius: var(--radius-2);
   padding: 6px 12px;
-  background: var(--color-primary-soft);
-  color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-surface);
   font-size: 14px;
   font-weight: 700;
 }
 
 .reservation-detail-status[data-state="completed"] {
-  color: var(--color-success);
+  background: var(--color-success);
 }
 
 .reservation-ticket-edit-dialog {
-  width: min(760px, 100%);
+  width: min(684px, 100%);
   max-height: calc(100vh - 48px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
   overflow-y: auto;
 }
 
 .reservation-ticket-edit-content {
+  display: grid;
   gap: var(--space-4);
+  padding: 0 20px 0 28px;
   text-align: left;
+}
+
+.reservation-ticket-edit-header {
+  position: relative;
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.reservation-ticket-edit-close {
+  position: absolute;
+  right: var(--space-4);
+}
+
+.reservation-ticket-edit-field {
+  display: grid;
+  grid-template-columns: 57px minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-4);
+}
+
+.reservation-ticket-edit-actions {
+  padding: 0 28px 20px;
+}
+
+.reservation-ticket-edit-actions > .button {
+  flex: 0 1 300px;
+  height: 42px;
+}
+
+.reservation-ticket-preview {
+  grid-template-columns: minmax(0, 1fr) 32px minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-6) var(--space-5);
+  border-radius: var(--radius-4);
+  background: var(--color-page-subtle);
+  text-align: center;
+}
+
+.reservation-ticket-preview:not([hidden]) {
+  display: grid;
+}
+
+.reservation-ticket-preview__item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.reservation-ticket-preview__label {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 16px;
+  font-weight: 400;
+}
+
+.reservation-ticket-preview__summary {
+  margin-top: var(--space-1);
+}
+
+.reservation-ticket-preview__arrow {
+  color: var(--color-text-secondary);
+  font-size: 28px;
 }
 
 .reservation-detail-form-title {
@@ -391,47 +500,9 @@
   text-align: center;
 }
 
-.reservation-detail-form-heading {
-  display: grid;
-  grid-template-columns: 40px minmax(0, 1fr) 40px;
-  align-items: center;
-}
-
-.reservation-detail-form-heading .reservation-detail-form-title {
-  grid-column: 2;
-}
-
 .reservation-ticket-edit-label {
   margin: 0;
   font-size: 16px;
-}
-
-.reservation-ticket-table-wrap {
-  overflow-x: auto;
-}
-
-.reservation-ticket-table {
-  width: 100%;
-  min-width: 540px;
-  border-collapse: collapse;
-  font-size: 14px;
-}
-
-.reservation-ticket-table th,
-.reservation-ticket-table td {
-  padding: 12px;
-  border-bottom: 1px solid var(--color-border-light);
-  text-align: left;
-}
-
-.reservation-ticket-table th {
-  background: var(--color-page-subtle);
-  white-space: nowrap;
-}
-
-.reservation-ticket-table [data-field="ticketCount"],
-.reservation-ticket-table [data-field="ticketExpiry"] {
-  white-space: nowrap;
 }
 
 .reservation-ticket-count[data-state="changed"] {
@@ -439,22 +510,8 @@
   font-weight: 700;
 }
 
-.reservation-ticket-count__value[data-state="warning"] {
-  color: var(--color-warning);
-}
-
-.reservation-ticket-table tr[data-state="selected"] {
-  background: var(--color-primary-soft);
-}
-
-.reservation-ticket-option {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.reservation-ticket-option input {
-  flex-shrink: 0;
+.reservation-ticket-count__value {
+  color: var(--color-primary);
 }
 
 .reservation-detail-info-list {

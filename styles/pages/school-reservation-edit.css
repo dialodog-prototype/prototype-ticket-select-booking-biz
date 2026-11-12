@@ -11,53 +11,14 @@
 .school-reservation-edit-control--stacked {
   flex-direction: column;
   align-items: stretch;
+  gap: 8px;
+  cursor: default;
 }
 
-.reservation-datepicker__controls {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-3);
-}
-
-.reservation-datepicker__body {
-  display: grid;
-  gap: 10px;
-  text-align: center;
-}
-
-.reservation-datepicker__header {
-  display: grid;
-  grid-template-columns: 56px minmax(0, 1fr) 56px;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.reservation-datepicker__week {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-}
-
-.reservation-datepicker__date {
-  min-height: 40px;
-  border: 0;
-  background: transparent;
-}
-
-.reservation-datepicker__date[data-state="selected"] {
-  background: var(--color-primary);
-  color: var(--color-surface);
-  font-weight: 700;
-}
-
-.reservation-datepicker__date[data-state="muted"],
-.reservation-datepicker__date:disabled {
-  color: var(--color-text-muted);
-}
-
-.reservation-datepicker__date:disabled {
-  background: var(--color-page);
-  cursor: not-allowed;
+.school-reservation-edit-control--stacked > .school-reservation-detail-ticket-round {
+  margin-top: 0;
+  border-top: 0;
+  padding-top: 0;
 }
 
 .ticket-change-summary {
@@ -71,15 +32,11 @@
   border-radius: var(--radius-2);
   padding: var(--space-3);
   background: var(--color-primary-soft);
-  color: var(--color-text);
+  color: var(--color-primary);
 }
 
 .ticket-change-summary__after {
   color: var(--color-primary);
-}
-
-.ticket-change-summary__after[data-state="warning"] {
-  color: var(--color-warning);
 }
 
 @media (max-width: 430px) {

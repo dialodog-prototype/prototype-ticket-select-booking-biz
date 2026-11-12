@@ -39,7 +39,6 @@
 }
 
 .modal-footer-actions > .button--danger,
-.modal-footer-actions > .ticket-detail-cancel-button,
 .modal-footer-actions > .pet-detail-delete-button {
   border: 0;
   background: var(--color-warning);
