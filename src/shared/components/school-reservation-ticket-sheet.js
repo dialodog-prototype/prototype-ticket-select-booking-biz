@@ -1,7 +1,8 @@
 import { createModalOverlay } from "./modal.js";
 import { createElement } from "../utils/dom.js";
+import { getTicketReservableCount } from "../services/school-reservation-ticket-service.js";
 
-export function createSchoolReservationTicketSheet({ tickets, selectedId, getLabel, getValidityLabel, isDisabled = () => false, onSelect, onClose }) {
+export function createSchoolReservationTicketSheet({ tickets, selectedId, getLabel, getValidityLabel, showReservableCount = true, formatReservableCount = (count) => `예약 가능 : ${count}회`, showValidity = true, isDisabled = () => false, onSelect, onClose }) {
   let pendingId = selectedId || "";
   const close = () => { overlay.remove(); onClose?.(); };
   const overlay = createModalOverlay({ className: "school-app-ticket-sheet-overlay", dataset: { area: "reservationTicketSheet" } }, { onEscape: close });
@@ -14,14 +15,8 @@ export function createSchoolReservationTicketSheet({ tickets, selectedId, getLab
   header.append(createElement("h2", { textContent: "이용권 선택" }), closeButton);
   const list = createElement("div", { className: "school-app-ticket-sheet-list" });
   const content = createElement("div", { className: "school-app-ticket-sheet-content" });
-  const confirm = createElement("button", {
-    className: "button button--primary school-app-ticket-sheet-confirm", type: "button", textContent: "변경",
-    dataset: { action: "confirmTicketSelection" },
-  });
   const controls = new Map();
   const updateSelection = () => {
-    const selected = tickets.find((ticket) => ticket.id === pendingId);
-    confirm.disabled = !selected || pendingId === selectedId || isDisabled(selected);
     controls.forEach(({ option, radio, ticket }) => {
       radio.checked = ticket.id === pendingId;
       radio.disabled = isDisabled(ticket);
@@ -37,26 +32,29 @@ export function createSchoolReservationTicketSheet({ tickets, selectedId, getLab
       dataset: { action: "selectReservationTicket", entityId: ticket.id },
     });
     radio.name = "ticketSheetSelection";
-    radio.addEventListener("change", () => { pendingId = ticket.id; updateSelection(); });
+    radio.addEventListener("click", () => {
+      if (isDisabled(ticket)) { updateSelection(); return; }
+      if (ticket.id === selectedId) { close(); return; }
+      pendingId = ticket.id;
+      updateSelection();
+      overlay.remove();
+      onSelect(ticket);
+    });
     const text = createElement("span", { className: "school-app-ticket-sheet-text" });
     const details = createElement("span", { className: "school-app-ticket-sheet-details" });
-    details.append(
-      createElement("span", { textContent: `예약 가능 : ${ticket.remainingCount ?? 0}회` }),
-      createElement("span", { className: "school-app-ticket-sheet-validity", textContent: `기간 : ${getValidityLabel(ticket)}` }),
-    );
+    if (showReservableCount) {
+      details.append(createElement("span", { textContent: formatReservableCount(getTicketReservableCount(ticket)) }));
+    }
+    if (showValidity) {
+      details.append(createElement("span", { className: "school-app-ticket-sheet-validity", textContent: `기간 : ${getValidityLabel(ticket)}` }));
+    }
     text.append(createElement("strong", { textContent: getLabel(ticket) }), details);
     option.append(radio, text);
     controls.set(ticket.id, { option, radio, ticket });
     list.append(option);
   });
-  confirm.addEventListener("click", () => {
-    const selected = tickets.find((ticket) => ticket.id === pendingId);
-    if (!selected || pendingId === selectedId || isDisabled(selected)) { updateSelection(); return; }
-    overlay.remove();
-    onSelect(selected);
-  });
   updateSelection();
-  content.append(list, confirm);
+  content.append(list);
   sheet.append(header, content);
   overlay.append(sheet);
   return overlay;

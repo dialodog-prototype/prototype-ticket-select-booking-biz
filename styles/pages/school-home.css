@@ -1353,7 +1353,7 @@
   display: none;
 }
 
-.school-app-reservation-member-search-screen {
+.school-app-reservation-member-search-overlay {
   display: none;
 }
 
@@ -1417,12 +1417,15 @@
     background: var(--color-surface);
   }
 
+  .school-app-reservation-member-search-overlay {
+    display: flex;
+  }
+
   .school-app-reservation-member-search-screen {
-    min-height: 100vh;
+    height: 70vh;
     display: flex;
     flex-direction: column;
-    padding: 72px 16px 32px;
-    background: var(--color-surface);
+    overflow: hidden;
   }
 
   .school-app-pickdrop-registration-screen {
@@ -1440,6 +1443,7 @@
   }
 
   .school-app-reservation-member-search-bar {
+    flex-shrink: 0;
     height: 54px;
     display: flex;
     align-items: center;
@@ -1477,11 +1481,14 @@
 
   .school-app-reservation-member-result-list {
     display: flex;
+    min-height: 0;
     flex-direction: column;
     margin: 24px 20px 0;
+    overflow-y: auto;
   }
 
   .school-app-reservation-member-result {
+    flex-shrink: 0;
     min-height: 64px;
     border: 0;
     border-bottom: 1px solid var(--color-border-subtle);

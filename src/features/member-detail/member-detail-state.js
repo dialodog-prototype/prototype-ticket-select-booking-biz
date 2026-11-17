@@ -41,7 +41,7 @@ export function createMemberDetailState() {
     petDetailDraft: createPetDetailDraft(selectedPet),
     toastMessage: queryParams.get("toast") === "existingMember"
       ? "이미 등록된 회원입니다.\n반려견 정보를 확인해 주세요."
-      : "",
+      : queryParams.get("toast") === "ticketIssueCancelled" ? "지급된 이용권이 취소되었습니다." : "",
     isMemberRegistrationPageOpen: false,
     isGuardianLookupModalOpen: false,
     guardianLookup: {

@@ -17,6 +17,7 @@ import { normalizePhoneNumber } from "../utils/phone.js";
 import { getTicketById } from "../data/ticket-list.js";
 import { getDateKey, getTicketExpiryDate, getTicketStartDate, getTicketStatus } from "../services/ticket-status-service.js";
 import { reconcileOverbookedReservations } from "../services/school-reservation-reconciliation-service.js";
+import { MAX_TICKET_ISSUE_QUANTITY, MAX_TICKET_RESERVABLE_COUNT } from "../constants/ticket-limits.js";
 
 export const MEMBER_LIST_STORAGE_KEY = "memberList";
 export const LEGACY_MEMBER_LIST_STORAGE_KEY = "prototype.memberTags.memberList";
@@ -304,6 +305,19 @@ export function updateTicketHistory({ memberId, petId, ticketHistoryId, reservab
   if (!memberId || !petId || !ticketHistoryId) return { members: getStoredMembers(), didUpdate: false };
 
   const currentMembers = getStoredMembers();
+  const currentPet = currentMembers.find((member) => member.id === memberId)?.pets?.find((pet) => pet.id === petId);
+  const currentTicket = currentPet?.ticketHistories?.find((ticket) => ticket.id === ticketHistoryId);
+  const reservations = getSchoolHomeReservations();
+  const count = Number(reservableCount);
+  const hasOverbooking = reservations.some((reservation) => reservation.memberId === memberId
+    && reservation.petId === petId && reservation.isOverbooked && reservation.status !== "취소");
+  const expiryChanged = expiresAt !== undefined && expiresAt !== (currentTicket?.expiresAt || "");
+  const expiryDateKey = getDateKey(expiresAt);
+  const startDateKey = getDateKey(currentTicket?.startedAt);
+  if (!currentTicket || !Number.isInteger(count) || count < 0 || count > MAX_TICKET_RESERVABLE_COUNT || hasOverbooking
+    || (expiryChanged && (!expiryDateKey || !startDateKey || currentTicket.unlimitedValidity || expiryDateKey < startDateKey))) {
+    return { members: currentMembers, didUpdate: false, conflict: true };
+  }
   let didUpdate = false;
   const nextMembers = currentMembers.map((member) => {
     if (member.id !== memberId) return member;
@@ -317,14 +331,14 @@ export function updateTicketHistory({ memberId, petId, ticketHistoryId, reservab
             if (ticket.id !== ticketHistoryId) return ticket;
             didUpdate = true;
             const nextReservableCount = Math.max(Number(reservableCount) || 0, 0);
+            const nextTotalCount = Math.max(Number(ticket.usageTotalCount ?? ticket.totalCount ?? ticket.quantity)
+              + nextReservableCount - Number(ticket.reservableCount || 0), 0);
             return {
               ...ticket,
               reservableCount: nextReservableCount,
-              usageTotalCount: Math.max(
-                Number(ticket.usageTotalCount ?? ticket.totalCount ?? ticket.quantity) + nextReservableCount
-                  - (Number(ticket.reservableCount ?? ticket.remainingCount) || 0),
-                0,
-              ),
+              usageTotalCount: nextTotalCount,
+              totalCount: nextTotalCount,
+              quantity: nextTotalCount,
               expiresAt: expiresAt || "",
               depletedAt: nextReservableCount > 0 ? "" : ticket.depletedAt || new Date().toISOString(),
             };
@@ -351,12 +365,17 @@ export function removeTicketHistory({ memberId, petId, ticketHistoryId } = {}) {
       ...member,
       pets: (member.pets || []).map((pet) => {
         if (pet.id !== petId) return pet;
-        const ticketHistories = (pet.ticketHistories || []).filter((ticket) => {
-          const shouldRemove = ticket.id === ticketHistoryId;
-          if (shouldRemove) didUpdate = true;
-          return !shouldRemove;
-        });
-        return { ...pet, ticketHistories };
+        const cancelledTicket = (pet.ticketHistories || []).find((ticket) => ticket.id === ticketHistoryId);
+        if (!cancelledTicket) return pet;
+        didUpdate = true;
+        return {
+          ...pet,
+          ticketHistories: pet.ticketHistories.filter((ticket) => ticket.id !== ticketHistoryId),
+          cancelledTicketHistories: [
+            ...(pet.cancelledTicketHistories || []),
+            { ...cancelledTicket, status: "지급 취소", cancelledAt: new Date().toISOString() },
+          ],
+        };
       }),
     };
   });
@@ -437,7 +456,8 @@ export function issueTicketToMemberPet({ memberId, petId, ticket, quantity = 1, 
   const totalIssuedCount = ticketQuantity * issueQuantity;
   const deduction = Math.min(Math.max(Math.floor(Number(deductedCount) || 0), 0), totalIssuedCount);
 
-  if (!memberId || !petId || !ticket?.id || totalIssuedCount <= 0) {
+  if (!memberId || !petId || !ticket?.id || totalIssuedCount <= 0
+    || !Number.isInteger(Number(quantity)) || Number(quantity) < 1 || Number(quantity) > MAX_TICKET_ISSUE_QUANTITY) {
     return { members: currentMembers, issuedTicket: null, issuedTickets: [] };
   }
 
@@ -571,9 +591,18 @@ function syncTicketStatuses(members, reservations) {
           petId: pet.id,
           ticketHistories: pet.ticketHistories || [],
         };
+        const reservationCount = reservations.filter((reservation) => reservation.memberId === member.id
+          && reservation.petId === pet.id && reservation.status !== "취소" && !reservation.isOverbooked
+          && (reservation.ticketHistoryId === ticket.id || (!reservation.ticketHistoryId
+            && reservation.ticketId && reservation.ticketId === (ticket.ticketId || ticket.id)))).length;
+        const totalCount = Number(ticket.usageTotalCount ?? ticket.totalCount ?? ticket.quantity) || 0;
+        const reservableCount = Math.max(totalCount - reservationCount, 0);
         const startDate = getTicketStartDate(ticket, reservations, context);
         const startedAt = ticket.startedAt || getDateKey(startDate);
-        const nextTicket = { ...ticket, startedAt };
+        const nextTicket = {
+          ...ticket, startedAt, reservableCount,
+          depletedAt: reservableCount > 0 ? "" : ticket.depletedAt || new Date().toISOString(),
+        };
         nextTicket.expiresAt = ticket.expiresAt || getDateKey(getTicketExpiryDate(nextTicket, reservations, context));
         return { ...nextTicket, status: getTicketStatus(nextTicket, reservations, context) };
       }),
@@ -657,6 +686,7 @@ function normalizePet(pet) {
     totalReservableCountByType: normalizeCountMap(pet?.totalReservableCountByType),
     totalReservedCountByType: normalizeCountMap(pet?.totalReservedCountByType),
     ticketHistories: normalizeTicketHistories(pet?.ticketHistories || pet?.tickets),
+    cancelledTicketHistories: normalizeTicketHistories(pet?.cancelledTicketHistories),
     petTags: normalizeMemberTags(pet?.petTags),
   };
 }
@@ -824,6 +854,7 @@ function normalizeTicketHistories(ticketHistories) {
         startedAt: ticketHistory?.startedAt || "",
         usageHistory: Array.isArray(ticketHistory?.usageHistory) ? ticketHistory.usageHistory.map((item) => ({ ...item })) : [],
         issuedAt: ticketHistory?.issuedAt || "",
+        cancelledAt: ticketHistory?.cancelledAt || "",
       };
     })
     .filter((ticketHistory) => {

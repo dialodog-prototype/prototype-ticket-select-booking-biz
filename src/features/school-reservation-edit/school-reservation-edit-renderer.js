@@ -8,16 +8,17 @@ import { cancelSchoolReservation } from "../../shared/services/school-reservatio
 import { getTicketUsageRound, isReservationTicketAvailable, getTicketValidityLabel } from "../../shared/services/school-reservation-ticket-service.js";
 import { getReservationTicketOptions, NO_RESERVATION_TICKET_CHANGE_MESSAGE } from "../school-reservation-detail/school-reservation-detail-service.js";
 import { createElement } from "../../shared/utils/dom.js";
-import { getReservedDatesForEdit, getTicketChangePreview, getTicketReservableCount, saveReservationEdit } from "./school-reservation-edit-service.js";
+import { getReservedDatesForEdit, getTicketChangePreview, getTicketReservableCount, getReservationEditSnapshot, saveReservationEdit } from "./school-reservation-edit-service.js";
 import { createReservationDatePicker } from "./school-reservation-edit-datepicker.js";
 import { createToast, TOAST_AUTO_DISMISS_MS } from "../../shared/components/toast.js";
 
-export function renderSchoolReservationEdit(page, reservationId) {
+export function renderSchoolReservationEdit(page, reservationId, { pendingDraft } = {}) {
   const reservation = getSchoolHomeReservations().find((item) => item.id === reservationId);
   if (!reservation || reservation.status === "취소") { window.location.replace("./index.html"); return; }
   const member = getStoredMembers().find((item) => item.id === reservation.memberId);
   const pet = member?.pets?.find((item) => item.id === reservation.petId);
-  const draft = { ...reservation };
+  const draft = { ...reservation, ...pendingDraft };
+  const expectedSnapshot = getReservationEditSnapshot(reservationId);
   const saveButton = page.querySelector('[data-action="saveReservationEdit"]');
   const hasChanges = () => draft.date !== reservation.date
     || (draft.ticketHistoryId || "") !== (reservation.ticketHistoryId || "")
@@ -59,7 +60,27 @@ export function renderSchoolReservationEdit(page, reservationId) {
   });
   saveButton.addEventListener("click", () => {
     if (!hasChanges()) return;
-    const result = saveReservationEdit(reservation.id, draft);
+    const result = saveReservationEdit(reservation.id, draft, { expectedSnapshot });
+    if (result.conflict) {
+      const current = getSchoolHomeReservations().find((item) => item.id === reservationId);
+      if (!current || current.status === "취소") { window.location.replace("./index.html"); return; }
+      const nextDraft = { ...current };
+      if (draft.memo !== reservation.memo) nextDraft.memo = draft.memo;
+      if (draft.date !== reservation.date && !getReservedDatesForEdit(current, getSchoolHomeReservations()).has(draft.date)) nextDraft.date = draft.date;
+      const currentOptions = getReservationTicketOptions(current);
+      if (draft.ticketHistoryId !== reservation.ticketHistoryId) {
+        const selected = currentOptions.availableTickets.find((ticket) => ticket.id === draft.ticketHistoryId);
+        if (selected) Object.assign(nextDraft, { ticketHistoryId: selected.id, ticketId: selected.ticketId || selected.id, ticketName: selected.ticketName, isOverbooked: false });
+      }
+      const refreshedPage = page.cloneNode(true);
+      refreshedPage.querySelector('[data-area="reservationInfo"]').replaceChildren();
+      refreshedPage.querySelectorAll('[data-area="reservationDatePicker"], [data-area="reservationTicketSheet"], [data-role="toast"]').forEach((item) => item.remove());
+      page.replaceWith(refreshedPage);
+      renderSchoolReservationEdit(refreshedPage, reservationId, { pendingDraft: nextDraft });
+      const alert = createConfirmAlert({ title: "예약 수정 실패", message: "예약 또는 이용권에 변동이 있습니다.\n다시 시도해 주세요.", onConfirm: () => alert.remove() });
+      document.body.append(alert);
+      return;
+    }
     if (result.message) {
       const alert = createConfirmAlert({ message: result.message, onConfirm: () => alert.remove() });
       document.body.append(alert);

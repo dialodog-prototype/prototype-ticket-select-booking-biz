@@ -58,6 +58,13 @@ export function openReservationTicketEdit(page, reservation, trigger, onSave) {
     updatePreview();
   };
   const showFailure = () => {
+    const current = getSchoolHomeReservations().find((item) => item.id === reservation.id);
+    if (!current || current.status === "취소") { close(); window.location.replace("./index.html"); return; }
+    reservation = current;
+    options = getReservationTicketOptions(reservation);
+    expectedSnapshot = getReservationTicketChangeSnapshot(reservation.id);
+    if (!options.availableTickets.some((ticket) => ticket.id === selectedId)) selectedId = "";
+    renderOptions();
     const alert = createConfirmAlert({
       title: "예약 실패",
       message: "예약 또는 이용권에 변동이 있습니다.\n다시 시도해 주세요.",
@@ -65,13 +72,6 @@ export function openReservationTicketEdit(page, reservation, trigger, onSave) {
       modal: "reservationTicketConflictAlert",
       onConfirm: () => {
         alert.remove();
-        const current = getSchoolHomeReservations().find((item) => item.id === reservation.id);
-        if (!current || current.status === "취소") { close(); window.location.replace("./index.html"); return; }
-        reservation = current;
-        options = getReservationTicketOptions(reservation);
-        expectedSnapshot = getReservationTicketChangeSnapshot(reservation.id);
-        if (!options.availableTickets.some((ticket) => ticket.id === selectedId)) selectedId = "";
-        renderOptions();
       },
     });
     document.body.append(alert);

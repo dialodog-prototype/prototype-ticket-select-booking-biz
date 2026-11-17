@@ -1,6 +1,7 @@
 import { getSchoolHomeReservations, saveSchoolHomeReservation } from "../../shared/storage/school-home-storage.js";
 import { getStoredMembers, updateTicketHistoryCounters } from "../../shared/storage/member-storage.js";
 import { getTicketReservableCount, isReservationTicketAvailable } from "../../shared/services/school-reservation-ticket-service.js";
+import { getReservationRegistrationSnapshot } from "../school-home/school-home-reservation-service.js";
 
 export { getTicketReservableCount } from "../../shared/services/school-reservation-ticket-service.js";
 
@@ -25,7 +26,15 @@ export function getTicketChangePreview(reservation, tickets, currentTicketId, ne
   })).filter((item) => item.before !== item.after);
 }
 
-export function saveReservationEdit(reservationId, { date, ticketHistoryId, memo }) {
+export function getReservationEditSnapshot(reservationId) {
+  const reservations = getSchoolHomeReservations();
+  const reservation = reservations.find((item) => item.id === reservationId);
+  const member = getStoredMembers().find((item) => item.id === reservation?.memberId);
+  return JSON.stringify({ reservationId: reservation?.id || null, data: getReservationRegistrationSnapshot(member, reservations) });
+}
+
+export function saveReservationEdit(reservationId, { date, ticketHistoryId, memo }, { expectedSnapshot } = {}) {
+  if (expectedSnapshot && expectedSnapshot !== getReservationEditSnapshot(reservationId)) return { conflict: true };
   const reservations = getSchoolHomeReservations();
   const reservation = reservations.find((item) => item.id === reservationId);
   if (!reservation || reservation.status === "취소") return { reservation: null };

@@ -82,7 +82,3 @@
 .reservation-datepicker--popover .reservation-datepicker__date[data-state="muted"] {
   visibility: hidden;
 }
-
-.reservation-datepicker__actions {
-  margin-top: var(--space-4);
-}

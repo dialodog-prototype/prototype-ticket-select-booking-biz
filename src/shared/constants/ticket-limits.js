@@ -1,0 +1,2 @@
+export const MAX_TICKET_RESERVABLE_COUNT = 999;
+export const MAX_TICKET_ISSUE_QUANTITY = 99;
