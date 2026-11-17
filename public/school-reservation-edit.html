@@ -18,7 +18,7 @@
         <div data-area="reservationInfo"></div>
         <section class="school-reservation-detail-section school-reservation-detail-memo-section">
           <h2>메모</h2>
-          <textarea class="field__control reservation-detail-memo" data-field="reservationMemo" aria-label="메모" placeholder="성격, 알러지 등 필요한 내용 입력 (최대 500자)"></textarea>
+          <textarea class="field__control reservation-detail-memo" data-field="reservationMemo" aria-label="메모" placeholder="성격, 알러지 등 필요한 내용 입력 (최대 1000자)" maxlength="1000"></textarea>
         </section>
         <section class="school-reservation-detail-section school-reservation-detail-date-section">
           <h2>등원 날짜</h2>
@@ -61,7 +61,6 @@
           </div>
           <div class="alert-dialog-actions" data-area="datePickerActions">
             <button class="button button--secondary alert-dialog__button" type="button" data-action="closeDatePicker">닫기</button>
-            <button class="button button--primary alert-dialog__button" type="button" data-action="confirmReservationDate" disabled hidden>변경</button>
           </div>
         </div>
       </section>

@@ -1370,6 +1370,8 @@
 .member-detail-app-ticket-section .member-ticket-issue-button {
   width: 100%;
   height: 44px;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
 }
 
 .member-detail-app-ticket-list {
@@ -1686,6 +1688,9 @@ body[data-page="app-ticket-usage"] .member-ticket-detail-screen {
 
 .member-ticket-status-edit-sheet {
   width: min(100%, 430px);
+  max-height: 90dvh;
+  display: flex;
+  flex-direction: column;
   margin: 0 auto;
   overflow: hidden;
   border-radius: 24px 24px 0 0;
@@ -1693,6 +1698,7 @@ body[data-page="app-ticket-usage"] .member-ticket-detail-screen {
 }
 
 .member-ticket-status-edit-sheet-header {
+  flex-shrink: 0;
   position: relative;
   height: 56px;
   display: grid;
@@ -1716,6 +1722,8 @@ body[data-page="app-ticket-usage"] .member-ticket-detail-screen {
 }
 
 .member-ticket-status-edit-sheet-body {
+  min-height: 0;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 32px;
@@ -1729,6 +1737,19 @@ body[data-page="app-ticket-usage"] .member-ticket-detail-screen {
   color: #333333;
   font-size: 17px;
   font-weight: 700;
+}
+
+.member-ticket-status-edit-expiry-value {
+  color: var(--color-primary);
+}
+
+.member-ticket-expiry-calendar {
+  font-weight: 400;
+}
+
+.member-ticket-expiry-calendar__month,
+.member-ticket-expiry-calendar .reservation-datepicker__date[data-state="selected"] {
+  font-weight: 500;
 }
 
 .member-ticket-status-edit-count {
@@ -1753,8 +1774,7 @@ body[data-page="app-ticket-usage"] .member-ticket-detail-screen {
   color: #c4c4c4;
 }
 
-.member-ticket-status-edit-count output,
-.member-ticket-status-edit-field input {
+.member-ticket-status-edit-count output {
   width: 100%;
   height: 48px;
   box-sizing: border-box;
@@ -1772,12 +1792,8 @@ body[data-page="app-ticket-usage"] .member-ticket-detail-screen {
   justify-content: center;
 }
 
-.member-ticket-status-edit-field input {
-  padding: 0 15px;
-  font-family: inherit;
-}
-
 .member-ticket-status-edit-sheet-actions {
+  flex-shrink: 0;
   display: flex;
   gap: 11px;
   padding: 32px 16px 46px;

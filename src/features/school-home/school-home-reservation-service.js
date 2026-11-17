@@ -37,14 +37,14 @@ export function getReservationRegistrationSnapshot(member, reservations = []) {
   });
 }
 
-export function reconcileReservationRegistrationSelection(draft, member, reservations, capacityClosedDates = []) {
+export function reconcileReservationRegistrationSelection(draft, member, reservations) {
   const pet = getReservationPet(member, draft.petId);
   const tickets = getAvailableReservationTickets(pet, reservations, draft.memberId);
   const selectedTicket = tickets.find((ticket) => ticket.id === draft.ticketId);
   const reservedDates = new Set(reservations.filter((reservation) => {
     return reservation.memberId === draft.memberId && reservation.petId === draft.petId && reservation.status !== "취소";
   }).map((reservation) => reservation.date));
-  const selectedDates = draft.selectedDates.filter((date) => !reservedDates.has(date) && !capacityClosedDates.includes(date));
+  const selectedDates = draft.selectedDates.filter((date) => !reservedDates.has(date));
   return {
     ticketId: selectedTicket?.id || "",
     selectedDates: selectedTicket && tickets.length > 1
@@ -58,12 +58,11 @@ export function shouldRequireTicketChange({ selectedDateCount = 0, selectedTicke
   return availableTickets.length > 1 && selectedDateCount >= ticketCapacity;
 }
 
-export function getRegistrationValidation({ member, pet, ticketSelected = true, selectedDates, reservations, capacityClosedDates, allowOverLimit = false }) {
+export function getRegistrationValidation({ member, pet, ticketSelected = true, selectedDates, reservations, allowOverLimit = false }) {
   const dates = selectedDates || [];
   if (!member || !pet) return { isValid: false, message: "회원을 선택해 주세요." };
   if (!ticketSelected) return { isValid: false, message: "이용권을 선택해 주세요." };
   if (!dates.length) return { isValid: false, message: "예약 날짜를 선택해 주세요." };
-  if (dates.some((date) => (capacityClosedDates || []).includes(date))) return { isValid: false, message: "마감된 날짜는 등록할 수 없습니다." };
 
   const existingDates = new Set((reservations || [])
     .filter((reservation) => reservation.status !== "취소" && reservation.memberId === member.id && reservation.petId === pet.id)

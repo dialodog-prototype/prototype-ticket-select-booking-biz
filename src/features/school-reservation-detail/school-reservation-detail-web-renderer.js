@@ -34,7 +34,8 @@ export function createWebReservationDetail(reservation) {
     field("status").dataset.state = status === "이용 완료" ? "completed" : "idle";
     field("ticketName").textContent = current.isOverbooked ? "선택 안함" : current.ticketName || ticket?.ticketName || "-";
     field("reservationDate").value = formatReservationDate(current.date);
-    field("ticketRound").textContent = getTicketUsageRound(current, ticket, getSchoolHomeReservations());
+    field("ticketRound").textContent = getTicketUsageRound(current, ticket, getSchoolHomeReservations())
+      .replace(/^(\d+)\/(\d+)회차$/, "$1회차 / $2회차");
   };
   updateDate();
   const memo = field("reservationMemo");

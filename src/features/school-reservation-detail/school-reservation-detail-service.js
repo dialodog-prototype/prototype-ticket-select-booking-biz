@@ -2,8 +2,7 @@ import { getSchoolHomeReservations, saveSchoolHomeReservation } from "../../shar
 import { getStoredMembers } from "../../shared/storage/member-storage.js";
 import { getDateKey, getTicketExpiryDate } from "../../shared/services/ticket-status-service.js";
 import { isReservationTicketAvailable } from "../../shared/services/school-reservation-ticket-service.js";
-import { saveReservationEdit } from "../school-reservation-edit/school-reservation-edit-service.js";
-import { getReservationRegistrationSnapshot } from "../school-home/school-home-reservation-service.js";
+import { getReservationEditSnapshot, saveReservationEdit } from "../school-reservation-edit/school-reservation-edit-service.js";
 
 export const NO_RESERVATION_TICKET_CHANGE_MESSAGE = "사용 가능한 이용권이 없습니다.";
 
@@ -30,13 +29,7 @@ export function getReservationTicketOptions(reservation) {
 }
 
 export function getReservationTicketChangeSnapshot(reservationId) {
-  const reservations = getSchoolHomeReservations();
-  const reservation = reservations.find((item) => item.id === reservationId);
-  const member = getStoredMembers().find((item) => item.id === reservation?.memberId);
-  return JSON.stringify({
-    reservationId: reservation?.id || null,
-    data: getReservationRegistrationSnapshot(member, reservations),
-  });
+  return getReservationEditSnapshot(reservationId);
 }
 
 export function saveReservationTicketChange(reservationId, ticketHistoryId, { expectedSnapshot } = {}) {

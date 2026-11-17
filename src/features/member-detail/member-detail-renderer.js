@@ -24,10 +24,12 @@ import { getActiveTicketReservableCount, getLatestUsedTicketId, getOverbookedRes
 import { cancelTicketIssue, cancelTicketIssues } from "../../shared/services/ticket-cancellation-service.js";
 import { getTicketUsageRound } from "../../shared/services/school-reservation-ticket-service.js";
 import { createElement } from "../../shared/utils/dom.js";
+import { MAX_TICKET_ISSUE_QUANTITY, MAX_TICKET_RESERVABLE_COUNT } from "../../shared/constants/ticket-limits.js";
 import { formatText } from "../../shared/utils/format.js";
 import { formatMemberBirthDate, formatMemberGender, formatMemberWeight, getAgeOutputText, normalizeBirthDateParts } from "../../shared/utils/member-date.js";
 import { formatPhoneNumber } from "../../shared/utils/phone.js";
 import { createOwnerDetailDraft, createPetDetailDraft } from "./member-detail-draft.js";
+import { createTicketExpiryCalendar } from "./member-ticket-expiry-calendar.js";
 
 const DEFAULT_DOG_PROFILE_IMAGE = "../assets/defaultProfile_dog.svg";
 const CAMERA_ICON_PATH = "../assets/iconCamera.svg";
@@ -817,21 +819,32 @@ function createAppTicketStatusEditSheet(memberDetailState, onChange) {
   });
   const countValue = createElement("output", { textContent: `${draft.reservableCount}회` });
   const plusButton = createElement("button", { className: "button", type: "button", textContent: "+", ariaLabel: "예약 가능 횟수 늘리기" });
+  plusButton.disabled = draft.reservableCount >= MAX_TICKET_RESERVABLE_COUNT;
   plusButton.addEventListener("click", () => {
-    draft.reservableCount += 1;
+    draft.reservableCount = Math.min(draft.reservableCount + 1, MAX_TICKET_RESERVABLE_COUNT);
     rerenderAppTicketDetail(memberDetailState, onChange);
   });
   countControl.append(minusButton, countValue, plusButton);
   countField.append(countControl);
 
-  const expiryField = createElement("label", { className: "member-ticket-status-edit-field" });
-  expiryField.append(createElement("span", { textContent: "만료일" }));
-  const expiryInput = createElement("input", { type: "date", value: draft.expiresAt, dataset: { field: "ticketExpiryDate" } });
-  expiryInput.addEventListener("change", () => {
-    draft.expiresAt = expiryInput.value;
-    rerenderAppTicketDetail(memberDetailState, onChange);
+  const expiryField = createElement("section", { className: "member-ticket-status-edit-field" });
+  const expiryCaption = draft.expiresAt ? draft.expiresAt.replaceAll("-", ".") : getTicketValidityText(ticket, { showExpiry: false });
+  const expiryLabel = createElement("span", { textContent: "만료일 ", dataset: { field: "ticketExpiryLabel" } });
+  expiryLabel.append(createElement("span", { className: "member-ticket-status-edit-expiry-value", textContent: `(${expiryCaption})` }));
+  expiryField.append(expiryLabel);
+  const startDate = getTicketStartDate(ticket, memberDetailState.reservations, {
+    memberId: memberDetailState.selectedMember?.id, petId: memberDetailState.selectedPet?.id,
+    ticketHistories: memberDetailState.selectedPet?.ticketHistories || [],
   });
-  expiryField.append(expiryInput);
+  expiryField.append(createTicketExpiryCalendar({
+    selectedDate: draft.expiresAt,
+    minDate: getDateInputValue(startDate),
+    disabled: !startDate || Boolean(ticket.unlimitedValidity),
+    onSelect: (date) => {
+      draft.expiresAt = date;
+      rerenderAppTicketDetail(memberDetailState, onChange);
+    },
+  }));
   body.append(countField, expiryField);
   sheet.append(body);
 
@@ -884,12 +897,22 @@ function submitAppTicketStatusDraft(memberDetailState, draft, onChange) {
     expiresAt: draft.expiresAt,
   });
   memberDetailState.members = result.members;
-  memberDetailState.selectedMember = result.members.find((member) => member.id === memberDetailState.selectedMember?.id) || memberDetailState.selectedMember;
-  memberDetailState.selectedPet = memberDetailState.selectedMember?.pets?.find((pet) => pet.id === memberDetailState.selectedPet?.id) || memberDetailState.selectedPet;
+  memberDetailState.selectedMember = result.members.find((member) => member.id === memberDetailState.selectedMember?.id) || null;
+  memberDetailState.selectedPet = memberDetailState.selectedMember?.pets?.find((pet) => pet.id === memberDetailState.selectedPet?.id) || null;
   memberDetailState.selectedTicketHistory = memberDetailState.selectedPet?.ticketHistories?.find((ticket) => ticket.id === draft.ticketHistoryId) || null;
+  if (!result.didUpdate) {
+    if (!memberDetailState.selectedTicketHistory) {
+      const params = new URLSearchParams({ memberId: memberDetailState.selectedMember?.id || "", petId: memberDetailState.selectedPet?.id || "" });
+      window.location.href = memberDetailState.selectedMember ? `./member-detail.html?${params.toString()}` : "./member-home.html";
+      return;
+    }
+    memberDetailState.appTicketStatusDraft = createAppTicketStatusDraft(memberDetailState, memberDetailState.selectedTicketHistory);
+    rerenderAppTicketDetail(memberDetailState, onChange);
+    return;
+  }
   memberDetailState.isAppTicketStatusEditSheetOpen = false;
   memberDetailState.appTicketStatusDraft = null;
-  memberDetailState.toastMessage = "이용권 상태를 수정했습니다.";
+  memberDetailState.toastMessage = "수정되었습니다.";
   rerenderAppTicketDetail(memberDetailState, onChange);
 }
 
@@ -949,7 +972,7 @@ function createTicketIssuePrimaryButton(memberDetailState, member) {
     });
     memberDetailState.ticketIssueSelectedId = latestUsedTicketId;
     memberDetailState.ticketIssueQuantity = latestUsedTicket
-      ? Math.max(Math.ceil(overbookedReservationCount / Math.max(Number(latestUsedTicket.quantity) || 0, 1)), 1)
+      ? Math.min(MAX_TICKET_ISSUE_QUANTITY, Math.max(Math.ceil(overbookedReservationCount / Math.max(Number(latestUsedTicket.quantity) || 0, 1)), 1))
       : 1;
     memberDetailState.isTicketIssueBottomSheetOpen = true;
     rerender(memberDetailState);
@@ -986,7 +1009,7 @@ function createTicketIssueBottomSheet(memberDetailState, member) {
     const selectTicket = () => {
       memberDetailState.ticketIssueSelectedId = ticket.id;
       const ticketQuantity = Math.max(Number(ticket.quantity) || 0, 1);
-      memberDetailState.ticketIssueQuantity = Math.max(Math.ceil(overbookedReservationCount / ticketQuantity), 1);
+      memberDetailState.ticketIssueQuantity = Math.min(MAX_TICKET_ISSUE_QUANTITY, Math.max(Math.ceil(overbookedReservationCount / ticketQuantity), 1));
       rerender(memberDetailState);
     };
     radio.addEventListener("change", selectTicket);
@@ -1051,7 +1074,7 @@ function createTicketIssueBottomSheet(memberDetailState, member) {
     memberDetailState.isTicketIssueBottomSheetOpen = false;
     memberDetailState.ticketIssueSelectedId = "";
     memberDetailState.ticketIssueQuantity = 1;
-    memberDetailState.toastMessage = "이용권을 지급했습니다.";
+    memberDetailState.toastMessage = "이용권을 성공적으로 지급했습니다.";
     rerender(memberDetailState);
   });
   footer.append(availabilityText, issueButton);
@@ -1067,6 +1090,7 @@ function createTicketIssueQuantityControl(memberDetailState) {
   const decrease = createElement("button", { type: "button", textContent: "−", ariaLabel: "수량 줄이기" });
   const value = createElement("span", { textContent: `${memberDetailState.ticketIssueQuantity}개` });
   const increase = createElement("button", { type: "button", textContent: "+", ariaLabel: "수량 늘리기" });
+  increase.disabled = memberDetailState.ticketIssueQuantity >= MAX_TICKET_ISSUE_QUANTITY;
   decrease.disabled = memberDetailState.ticketIssueQuantity <= 1;
   decrease.addEventListener("click", (event) => {
     event.stopPropagation();
@@ -1075,7 +1099,7 @@ function createTicketIssueQuantityControl(memberDetailState) {
   });
   increase.addEventListener("click", (event) => {
     event.stopPropagation();
-    memberDetailState.ticketIssueQuantity += 1;
+    memberDetailState.ticketIssueQuantity = Math.min(memberDetailState.ticketIssueQuantity + 1, MAX_TICKET_ISSUE_QUANTITY);
     rerender(memberDetailState);
   });
   controls.append(decrease, value, increase);
@@ -1179,7 +1203,7 @@ function appendInlineMemberTags(parent, tags) {
 
 function createWebTicketHistorySection(memberDetailState, member) {
   const section = createElement("section", { className: "member-ticket-history-section", dataset: { area: "ticketHistory" } });
-  const histories = getMemberTicketHistories(member);
+  const histories = [...getMemberTicketHistories(member), ...(member.cancelledTicketHistories || [])];
   const selectableTickets = histories.filter((ticket) => canCancelTicketIssue(memberDetailState, ticket));
   const selectedIds = new Set((memberDetailState.selectedTicketHistoryIds || []).filter((id) => selectableTickets.some((ticket) => ticket.id === id)));
   memberDetailState.selectedTicketHistoryIds = [...selectedIds];
@@ -1371,6 +1395,13 @@ function createTicketCancelAlert(memberDetailState, onChange, ticketHistoryIds, 
     memberDetailState.isAppTicketDetailOpen = false;
     memberDetailState.selectedTicketHistory = null;
     memberDetailState.selectedTicketHistoryIds = [];
+    if (isApp) {
+      const params = new URLSearchParams({
+        memberId: memberDetailState.selectedMember?.id || "", petId: memberDetailState.selectedPet?.id || "", toast: "ticketIssueCancelled",
+      });
+      window.location.href = `./member-detail.html?${params.toString()}`;
+      return;
+    }
     memberDetailState.toastMessage = "이용권 지급을 취소했습니다.";
     rerenderAppTicketDetail(memberDetailState, onChange);
   });
@@ -1495,6 +1526,7 @@ function getMemberTicketHistories(member) {
 }
 
 function getTicketStatusForState(memberDetailState, ticket) {
+  if (ticket?.status === "지급 취소") return ticket.status;
   return getTicketStatus(ticket, memberDetailState.reservations, {
     memberId: memberDetailState.selectedMember?.id,
     petId: memberDetailState.selectedPet?.id,

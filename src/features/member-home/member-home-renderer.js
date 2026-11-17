@@ -16,10 +16,11 @@ import {
   updateSchoolHomeReservationTicketHistory,
 } from "../../shared/storage/school-home-storage.js";
 import { createElement } from "../../shared/utils/dom.js";
+import { MAX_TICKET_ISSUE_QUANTITY } from "../../shared/constants/ticket-limits.js";
 import { formatText } from "../../shared/utils/format.js";
 import { formatPhoneNumber, normalizePhoneNumber } from "../../shared/utils/phone.js";
 import { getTicketList } from "../../shared/data/ticket-list.js";
-import { getActiveTicketReservableCount, getLatestUsedTicketId, getOverbookedReservationCount } from "../../shared/services/ticket-status-service.js";
+import { getActiveTicketReservableCount, getOverbookedReservationCount } from "../../shared/services/ticket-status-service.js";
 import { getFilteredMembers, getMemberListState } from "./member-home-state.js";
 
 const MEMBER_SEARCH_FIELDS = ["petName", "breed", "guardianName", "phoneNumber"];
@@ -233,11 +234,6 @@ function createTicketIssueModal(memberHomeState) {
   const tickets = getTicketList("school");
   const excessCount = getTicketIssueExcessCount(pet, memberHomeState.reservations, { memberId: member?.id });
   const overbookedReservations = getTicketIssueOverbookedReservations(memberHomeState.reservations, member?.id, pet?.id);
-  const latestUsedTicketId = getLatestUsedTicketId(memberHomeState.reservations, {
-    memberId: member?.id,
-    petId: pet?.id,
-    ticketHistories: pet?.ticketHistories,
-  });
   const ticketRows = [];
   const overlay = createModalOverlay({ className: "ticket-issue-modal-overlay", dataset: { area: "ticketIssueModal", state: "open" } });
   const closeModal = () => {
@@ -287,8 +283,8 @@ function createTicketIssueModal(memberHomeState) {
   tickets.forEach((ticket) => {
     const rowState = {
       ticket,
-      quantity: ticket.id === latestUsedTicketId ? getTicketIssueQuantityForExcess(ticket, excessCount) : 1,
-      selected: ticket.id === latestUsedTicketId,
+      quantity: 1,
+      selected: false,
       checkbox: null,
       deductionElement: null,
       quantityElement: null,
@@ -315,7 +311,7 @@ function createTicketIssueModal(memberHomeState) {
     rowState.decreaseButton = decreaseButton;
     rowState.increaseButton = increaseButton;
     const updateQuantity = (nextQuantity) => {
-      rowState.quantity = Math.max(Math.floor(Number(nextQuantity) || 1), 1);
+      rowState.quantity = Math.min(MAX_TICKET_ISSUE_QUANTITY, Math.max(Math.floor(Number(nextQuantity) || 1), 1));
       quantityValue.textContent = String(rowState.quantity);
       syncTicketIssueQuantityControl(rowState);
       updateAvailability();
@@ -385,7 +381,7 @@ function createTicketIssueModal(memberHomeState) {
     memberHomeState.isTicketIssueModalOpen = false;
     memberHomeState.ticketIssueMemberId = "";
     memberHomeState.ticketIssuePetId = "";
-    memberHomeState.toastMessage = "이용권을 지급했습니다.";
+    memberHomeState.toastMessage = "이용권을 성공적으로 지급했습니다.";
     renderMemberHome(document.querySelector("#app"), memberHomeState);
   });
   footer.append(issueButton);
@@ -401,17 +397,12 @@ function setTicketIssueRowSelected(rowState, isSelected, excessCount, updateQuan
   syncTicketIssueQuantityControl(rowState);
 }
 
-function getTicketIssueQuantityForExcess(ticket, excessCount) {
-  const ticketQuantity = Math.max(Number(ticket?.quantity) || 0, 1);
-  return Math.max(Math.ceil(Math.max(Number(excessCount) || 0, 0) / ticketQuantity), 1);
-}
-
 function syncTicketIssueQuantityControl(rowState) {
   const isEnabled = rowState.selected;
   rowState.quantityElement.dataset.state = isEnabled ? "active" : "disabled";
   rowState.quantityElement.classList.toggle("is-disabled", !isEnabled);
   rowState.decreaseButton.disabled = !isEnabled || rowState.quantity <= 1;
-  rowState.increaseButton.disabled = !isEnabled;
+  rowState.increaseButton.disabled = !isEnabled || rowState.quantity >= MAX_TICKET_ISSUE_QUANTITY;
 }
 
 function syncTicketIssueSelectAll(selectAllCheckbox, ticketRows) {
