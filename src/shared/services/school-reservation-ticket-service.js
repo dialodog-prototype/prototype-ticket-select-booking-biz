@@ -79,6 +79,8 @@ export function getTicketUsageRound(reservation, ticketHistory, reservations, { 
     .map((item) => item.id === reservation.id ? reservation : item)
     .filter((item) => item.ticketHistoryId === reservation.ticketHistoryId && item.status !== "취소")
     .sort((left, right) => {
+      const visitDateOrder = String(left.date || "").localeCompare(String(right.date || ""));
+      if (visitDateOrder !== 0) return visitDateOrder;
       const leftTime = Date.parse(left.createdAt || left.reservedAt || left.date || "");
       const rightTime = Date.parse(right.createdAt || right.reservedAt || right.date || "");
       if (Number.isFinite(leftTime) && Number.isFinite(rightTime) && leftTime !== rightTime) return leftTime - rightTime;
