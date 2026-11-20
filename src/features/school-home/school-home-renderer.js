@@ -1069,7 +1069,9 @@ function createAppReservationRegisterScreen(schoolHomeState) {
   const member = schoolHomeState.members.find((item) => item.id === draft.memberId);
   const pet = getReservationPet(member, draft.petId);
   if (member && pet) {
-    body.append(createReservationTicketField(schoolHomeState, draft, { isAppRegistration: true }));
+    if (getAvailableReservationTickets(pet, schoolHomeState.reservations, draft.memberId).length) {
+      body.append(createReservationTicketField(schoolHomeState, draft, { isAppRegistration: true }));
+    }
     body.append(createReservationDateField(schoolHomeState, draft, { isAppRegistration: true }));
   }
   const footer = member && pet
